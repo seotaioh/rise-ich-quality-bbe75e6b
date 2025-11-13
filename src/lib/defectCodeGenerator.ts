@@ -10,6 +10,7 @@ export interface DefectCodeInput {
   partName: string; // 부품명
   defectType: string; // 불량 유형
   defectCause: string; // 불량 원인
+  worker?: string; // 작업자 (선택)
 }
 
 export interface DefectCodeResult {

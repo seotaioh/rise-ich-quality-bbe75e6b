@@ -9,12 +9,18 @@ import { Sparkles } from "lucide-react";
 
 const DEFECT_CAUSES = ["조립불량", "자재불량", "기능불량"];
 
+const WORKERS = [
+  "김철수", "이영희", "박민수", "정수진", "최동욱",
+  "강지훈", "윤서연", "임재현", "한미경", "신동혁"
+];
+
 export const DefectCodeGenerator = () => {
   const [input, setInput] = useState<DefectCodeInput>({
     processType: "공정검사",
     partName: "",
     defectType: "",
     defectCause: "조립불량",
+    worker: "",
   });
   
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -123,6 +129,25 @@ export const DefectCodeGenerator = () => {
             </SelectContent>
           </Select>
         </div>
+        
+        <div>
+          <Label htmlFor="worker">작업자</Label>
+          <Select 
+            value={input.worker} 
+            onValueChange={(value) => setInput({ ...input, worker: value })}
+          >
+            <SelectTrigger id="worker">
+              <SelectValue placeholder="작업자를 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {WORKERS.map((worker) => (
+                <SelectItem key={worker} value={worker}>
+                  {worker}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Button 
@@ -141,7 +166,7 @@ export const DefectCodeGenerator = () => {
             {generatedCode}
           </p>
           
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             <Badge variant="outline" className="bg-card">
               제품: {breakdown.product}
             </Badge>
@@ -155,6 +180,14 @@ export const DefectCodeGenerator = () => {
               불량: {breakdown.defect}
             </Badge>
           </div>
+          
+          {input.worker && (
+            <div className="pt-3 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                작업자: <span className="font-medium text-foreground">{input.worker}</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </Card>
