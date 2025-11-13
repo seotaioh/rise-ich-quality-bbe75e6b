@@ -4,7 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import DefectCodePage from "./pages/DefectCodePage";
+import DefectAnalysis from "./pages/DefectAnalysis";
+import WorkerPerformance from "./pages/WorkerPerformance";
 import NotFound from "./pages/NotFound";
+import { Layout } from "./components/layout/Layout";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +20,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/defect-code" element={<Layout><DefectCodePage /></Layout>} />
+          <Route path="/analysis" element={<Layout><DefectAnalysis /></Layout>} />
+          <Route path="/workers" element={<Layout><WorkerPerformance /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
