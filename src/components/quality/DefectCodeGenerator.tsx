@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { generateDefectCode, DefectCodeInput } from "@/lib/defectCodeGenerator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { generateDefectCode, DefectCodeInput, PROCESS_CODES, PART_CODES, DEFECT_CODES } from "@/lib/defectCodeGenerator";
 import { Sparkles } from "lucide-react";
+
+const DEFECT_CAUSES = ["조립불량", "자재불량", "기능불량"];
 
 export const DefectCodeGenerator = () => {
   const [input, setInput] = useState<DefectCodeInput>({
@@ -17,6 +19,19 @@ export const DefectCodeGenerator = () => {
   
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
+
+  // 선택된 부품에 따라 사용 가능한 불량 유형 필터링
+  const availableDefectTypes = useMemo(() => {
+    if (!input.partName) return [];
+    
+    const partCode = PART_CODES[input.partName];
+    if (!partCode) return [];
+    
+    const majorCategory = partCode.charAt(0);
+    const defectMap = DEFECT_CODES[majorCategory];
+    
+    return defectMap ? Object.keys(defectMap) : [];
+  }, [input.partName]);
 
   const handleGenerate = () => {
     const result = generateDefectCode(input);
@@ -34,42 +49,79 @@ export const DefectCodeGenerator = () => {
       <div className="space-y-4 mb-6">
         <div>
           <Label htmlFor="partName">부품명</Label>
-          <Input
-            id="partName"
-            placeholder="예: 솔밸브-온수"
-            value={input.partName}
-            onChange={(e) => setInput({ ...input, partName: e.target.value })}
-          />
+          <Select 
+            value={input.partName} 
+            onValueChange={(value) => setInput({ ...input, partName: value, defectType: "" })}
+          >
+            <SelectTrigger id="partName">
+              <SelectValue placeholder="부품을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(PART_CODES).map((part) => (
+                <SelectItem key={part} value={part}>
+                  {part} ({PART_CODES[part]})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div>
           <Label htmlFor="defectType">불량 유형</Label>
-          <Input
-            id="defectType"
-            placeholder="예: 누수"
-            value={input.defectType}
-            onChange={(e) => setInput({ ...input, defectType: e.target.value })}
-          />
+          <Select 
+            value={input.defectType} 
+            onValueChange={(value) => setInput({ ...input, defectType: value })}
+            disabled={!input.partName}
+          >
+            <SelectTrigger id="defectType">
+              <SelectValue placeholder={input.partName ? "불량 유형을 선택하세요" : "먼저 부품을 선택하세요"} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDefectTypes.map((defect) => (
+                <SelectItem key={defect} value={defect}>
+                  {defect}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div>
           <Label htmlFor="processType">공정</Label>
-          <Input
-            id="processType"
-            placeholder="예: 공정검사"
-            value={input.processType}
-            onChange={(e) => setInput({ ...input, processType: e.target.value })}
-          />
+          <Select 
+            value={input.processType} 
+            onValueChange={(value) => setInput({ ...input, processType: value })}
+          >
+            <SelectTrigger id="processType">
+              <SelectValue placeholder="공정을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(PROCESS_CODES).map((process) => (
+                <SelectItem key={process} value={process}>
+                  {process} ({PROCESS_CODES[process]})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div>
           <Label htmlFor="defectCause">불량 원인</Label>
-          <Input
-            id="defectCause"
-            placeholder="예: 조립불량"
-            value={input.defectCause}
-            onChange={(e) => setInput({ ...input, defectCause: e.target.value })}
-          />
+          <Select 
+            value={input.defectCause} 
+            onValueChange={(value) => setInput({ ...input, defectCause: value })}
+          >
+            <SelectTrigger id="defectCause">
+              <SelectValue placeholder="불량 원인을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEFECT_CAUSES.map((cause) => (
+                <SelectItem key={cause} value={cause}>
+                  {cause}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
