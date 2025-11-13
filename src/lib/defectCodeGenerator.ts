@@ -27,7 +27,7 @@ export interface DefectCodeResult {
 const PRODUCT_CODE = "C03";
 
 // Process Classification
-const PROCESS_CODES: Record<string, string> = {
+export const PROCESS_CODES: Record<string, string> = {
   "1공정": "A",
   "2공정": "A",
   "3공정": "A",
@@ -44,7 +44,7 @@ const PROCESS_CODES: Record<string, string> = {
 };
 
 // Part Code Mapping (Major + Minor Classification)
-const PART_CODES: Record<string, string> = {
+export const PART_CODES: Record<string, string> = {
   // 1xx: 사출물
   "전면케이스": "101",
   "출수코크": "102",
@@ -106,7 +106,7 @@ const PART_CODES: Record<string, string> = {
 };
 
 // Defect Type Codes (dependent on part category)
-const DEFECT_CODES: Record<string, Record<string, string>> = {
+export const DEFECT_CODES: Record<string, Record<string, string>> = {
   "1": { // 사출물
     "변형": "1",
     "크랙": "2",
