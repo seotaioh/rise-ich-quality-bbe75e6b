@@ -54,6 +54,25 @@ export const DefectCodeGenerator = () => {
       
       <div className="space-y-4 mb-6">
         <div>
+          <Label htmlFor="processType">공정</Label>
+          <Select 
+            value={input.processType} 
+            onValueChange={(value) => setInput({ ...input, processType: value })}
+          >
+            <SelectTrigger id="processType">
+              <SelectValue placeholder="공정을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(PROCESS_CODES).map((process) => (
+                <SelectItem key={process} value={process}>
+                  {process} ({PROCESS_CODES[process]})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
           <Label htmlFor="partName">부품명</Label>
           <Select 
             value={input.partName} 
@@ -86,25 +105,6 @@ export const DefectCodeGenerator = () => {
               {availableDefectTypes.map((defect) => (
                 <SelectItem key={defect} value={defect}>
                   {defect}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="processType">공정</Label>
-          <Select 
-            value={input.processType} 
-            onValueChange={(value) => setInput({ ...input, processType: value })}
-          >
-            <SelectTrigger id="processType">
-              <SelectValue placeholder="공정을 선택하세요" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(PROCESS_CODES).map((process) => (
-                <SelectItem key={process} value={process}>
-                  {process} ({PROCESS_CODES[process]})
                 </SelectItem>
               ))}
             </SelectContent>
