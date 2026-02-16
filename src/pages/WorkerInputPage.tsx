@@ -154,6 +154,13 @@ const WorkerInputPage = () => {
     if (!workerName) { toast.error("작업자를 선택하세요."); return; }
     if (!process) { toast.error("공정을 선택하세요."); return; }
 
+    // 불완전한 불량 항목 체크 (부품 또는 불량유형 누락)
+    const incompleteDefects = defects.filter((d) => (d.part || d.defectType || d.count > 1) && (!d.part || !d.defectType || d.count <= 0));
+    if (incompleteDefects.length > 0) {
+      toast.error(`불량 항목 ${incompleteDefects.length}건이 불완전합니다. 부품과 불량유형을 모두 선택하세요.`);
+      return;
+    }
+
     const validDefects = defects.filter((d) => d.part && d.defectType && d.count > 0);
 
     const worker = options.workers.find((w) => w.name === workerName);
@@ -184,7 +191,11 @@ const WorkerInputPage = () => {
     setSelectedTasks([]);
     setDefects([]);
     setMemo("");
-    toast.success(`${workerName}님의 실적이 등록되었습니다.`);
+
+    const defectMsg = validDefects.length > 0
+      ? ` (불량 ${validDefects.length}건 포함)`
+      : "";
+    toast.success(`${workerName}님의 실적이 등록되었습니다.${defectMsg}`);
   };
 
   const deleteSubmission = (id: number) => {
@@ -197,7 +208,7 @@ const WorkerInputPage = () => {
   // ── 선택 날짜 통계 ──
   const viewSubs = submissions.filter((s) => s.date === viewDate);
   const totalProduction = viewSubs.reduce((s, sub) => s + sub.productionQty, 0);
-  const totalDefects = viewSubs.reduce((s, sub) => s + sub.defects.reduce((ds, d) => ds + d.count, 0), 0);
+  const totalDefects = viewSubs.reduce((s, sub) => s + (sub.defects || []).reduce((ds, d) => ds + d.count, 0), 0);
   const defectRate = totalProduction > 0 ? ((totalDefects / totalProduction) * 100).toFixed(1) : "0.0";
   const isViewToday = viewDate === todayISO;
 
@@ -365,16 +376,18 @@ const WorkerInputPage = () => {
                 <p className="text-sm text-muted-foreground mb-2">불량이 없으면 비워두세요.</p>
               ) : (
                 <div className="space-y-2 mb-2">
-                  {defects.map((d, idx) => (
-                    <div key={idx} className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
+                  {defects.map((d, idx) => {
+                    const isIncomplete = !d.part || !d.defectType || d.count <= 0;
+                    return (
+                    <div key={idx} className={`p-3 rounded-lg border space-y-2 ${isIncomplete ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/20"}`}>
                       <div className="flex gap-2 items-center">
                         <select
-                          className={selectCls}
+                          className={`${selectCls} ${!d.part ? "text-destructive border-destructive/30" : ""}`}
                           value={d.part}
                           onChange={(e) => updateDefect(idx, "part", e.target.value)}
                           style={{ flex: 3 }}
                         >
-                          <option value="">불량 부품</option>
+                          <option value="">불량 부품을 선택하세요</option>
                           {options.parts.map((p) => (
                             <option key={p.name} value={p.name}>{p.name} ({p.code})</option>
                           ))}
@@ -386,13 +399,13 @@ const WorkerInputPage = () => {
                       </div>
                       <div className="flex gap-2">
                         <select
-                          className={selectCls}
+                          className={`${selectCls} ${d.part && !d.defectType ? "text-destructive border-destructive/30" : ""}`}
                           value={d.defectType}
                           onChange={(e) => updateDefect(idx, "defectType", e.target.value)}
                           disabled={!d.part}
                           style={{ flex: 2 }}
                         >
-                          <option value="">{d.part ? "불량유형 선택" : "부품을 먼저 선택"}</option>
+                          <option value="">{d.part ? "불량유형을 선택하세요" : "부품을 먼저 선택"}</option>
                           {getDefectTypes(d.part).map((dt) => (
                             <option key={dt} value={dt}>{dt}</option>
                           ))}
@@ -407,7 +420,13 @@ const WorkerInputPage = () => {
                           style={{ flex: 1 }}
                         />
                       </div>
+                      {isIncomplete && (
+                        <p className="text-xs text-destructive">
+                          {!d.part ? "부품을 선택하세요" : !d.defectType ? "불량유형을 선택하세요" : "수량을 입력하세요"}
+                        </p>
+                      )}
                     </div>
+                    );})
                   ))}
                 </div>
               )}
@@ -491,7 +510,7 @@ const WorkerInputPage = () => {
                   )}
 
                   {/* 불량내용 */}
-                  {sub.defects.length > 0 && (
+                  {(sub.defects || []).length > 0 && (
                     <div className="p-2 rounded bg-destructive/5 border border-destructive/20 space-y-1 mb-2">
                       <p className="text-xs font-medium text-destructive flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" /> 불량

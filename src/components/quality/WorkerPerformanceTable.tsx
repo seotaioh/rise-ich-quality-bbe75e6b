@@ -2,10 +2,21 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { workerPerformance } from "@/data/sampleDefects";
 import { Award } from "lucide-react";
 
-export const WorkerPerformanceTable = () => {
+interface WorkerData {
+  name: string;
+  produced: number;
+  defects: number;
+  defectRate: number;
+  score: number;
+}
+
+interface WorkerPerformanceTableProps {
+  data: WorkerData[];
+}
+
+export const WorkerPerformanceTable = ({ data }: WorkerPerformanceTableProps) => {
   return (
     <Card className="p-6 shadow-[var(--shadow-soft)] border-border/50">
       <div className="flex items-center gap-2 mb-6">
@@ -24,10 +35,10 @@ export const WorkerPerformanceTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {workerPerformance.map((worker, index) => (
+          {data.map((worker, index) => (
             <TableRow key={index}>
               <TableCell className="font-medium">{worker.name}</TableCell>
-              <TableCell className="text-right">{worker.produced}</TableCell>
+              <TableCell className="text-right">{worker.produced.toLocaleString()}</TableCell>
               <TableCell className="text-right">{worker.defects}</TableCell>
               <TableCell className="text-right">{worker.defectRate}%</TableCell>
               <TableCell>
@@ -39,13 +50,13 @@ export const WorkerPerformanceTable = () => {
                 </div>
               </TableCell>
               <TableCell>
-                <Badge 
+                <Badge
                   variant={worker.score >= 97 ? "default" : worker.score >= 95 ? "secondary" : "outline"}
                   className={
-                    worker.score >= 97 
-                      ? "bg-success text-success-foreground" 
-                      : worker.score >= 95 
-                      ? "bg-primary text-primary-foreground" 
+                    worker.score >= 97
+                      ? "bg-success text-success-foreground"
+                      : worker.score >= 95
+                      ? "bg-primary text-primary-foreground"
                       : ""
                   }
                 >

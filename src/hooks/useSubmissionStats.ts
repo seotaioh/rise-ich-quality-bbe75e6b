@@ -140,7 +140,7 @@ export function useSubmissionStats(
     dateFiltered.forEach((s) => {
       processSet.add(s.process);
       workerSet.add(s.workerName);
-      s.defects.forEach((d) => {
+      (s.defects || []).forEach((d) => {
         partSet.add(d.part);
         defectTypeSet.add(d.defectType);
       });
@@ -157,8 +157,8 @@ export function useSubmissionStats(
 
     // 3단계: 부품/불량유형 필터 - submission 레벨이 아니라 defect 레벨 필터링
     // 불량 관련 통계 계산 시 해당 필터 적용
-    const filterDefects = (defects: DefectEntry[]) => {
-      let result = defects;
+    const filterDefects = (defects: DefectEntry[] | undefined) => {
+      let result = defects || [];
       if (filterPart) {
         result = result.filter((d) => d.part === filterPart);
       }
