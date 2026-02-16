@@ -11,6 +11,7 @@ import { useSubmissionStats, toDateStr, getMonthStart } from "@/hooks/useSubmiss
 import type { StatFilters } from "@/hooks/useSubmissionStats";
 import { QueryPanel } from "@/components/quality/QueryPanel";
 import type { QueryParams } from "@/components/quality/QueryPanel";
+import { useModel } from "@/contexts/ModelContext";
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
@@ -19,6 +20,7 @@ const CHART_COLORS = [
 ];
 
 const DefectAnalysis = () => {
+  const { selectedModel } = useModel();
   const todayISO = toDateStr(new Date());
 
   // 조회 적용된 파라미터
@@ -29,7 +31,7 @@ const DefectAnalysis = () => {
   });
   const [queried, setQueried] = useState(false);
 
-  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters);
+  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters, selectedModel.id);
 
   const handleQuery = useCallback((params: QueryParams) => {
     setApplied(params);

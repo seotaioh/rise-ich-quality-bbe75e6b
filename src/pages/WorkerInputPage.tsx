@@ -11,6 +11,7 @@ import { useCustomOptions } from "@/hooks/useCustomOptions";
 import { useWorkerSubmissions, DefectEntry } from "@/hooks/useWorkerSubmissions";
 import { DEFECT_CODES } from "@/lib/defectCodeGenerator";
 import { toast } from "sonner";
+import { useModel } from "@/contexts/ModelContext";
 
 // ── 작업유형 (실제 카톡 데이터 기반) ──
 const TASK_OPTIONS = [
@@ -45,6 +46,7 @@ const inputCls =
 
 // ── 메인 컴포넌트 ──
 const WorkerInputPage = () => {
+  const { selectedModel } = useModel();
   const options = useCustomOptions();
   const { submissions, loading, addSubmission, deleteSubmission } = useWorkerSubmissions();
 
@@ -129,6 +131,7 @@ const WorkerInputPage = () => {
       tasks: selectedTasks,
       defects: validDefects,
       memo,
+      model: selectedModel.id,
     });
     setSubmitting(false);
 
@@ -150,7 +153,7 @@ const WorkerInputPage = () => {
   };
 
   // ── 선택 날짜 통계 ──
-  const viewSubs = submissions.filter((s) => s.date === viewDate);
+  const viewSubs = submissions.filter((s) => s.date === viewDate && (s.model || "ICH-3000") === selectedModel.id);
   const totalProduction = viewSubs.reduce((s, sub) => s + sub.productionQty, 0);
   const totalDefects = viewSubs.reduce((s, sub) => s + (sub.defects || []).reduce((ds, d) => ds + d.count, 0), 0);
   const defectRate = totalProduction > 0 ? ((totalDefects / totalProduction) * 100).toFixed(1) : "0.0";
@@ -163,7 +166,10 @@ const WorkerInputPage = () => {
         <ClipboardEdit className="h-8 w-8 text-primary" />
         <div>
           <h2 className="text-3xl font-bold text-foreground">작업자 생산/불량 입력</h2>
-          <p className="text-muted-foreground">공정별 생산 실적과 불량 내역을 입력합니다</p>
+          <p className="text-muted-foreground">
+            공정별 생산 실적과 불량 내역을 입력합니다
+            <Badge variant="outline" className="ml-2 text-primary border-primary">{selectedModel.label}</Badge>
+          </p>
         </div>
       </div>
 

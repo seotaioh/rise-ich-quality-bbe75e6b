@@ -8,8 +8,10 @@ import { useSubmissionStats, toDateStr, getMonthStart } from "@/hooks/useSubmiss
 import type { StatFilters } from "@/hooks/useSubmissionStats";
 import { QueryPanel } from "@/components/quality/QueryPanel";
 import type { QueryParams } from "@/components/quality/QueryPanel";
+import { useModel } from "@/contexts/ModelContext";
 
 const ProcessDefects = () => {
+  const { selectedModel } = useModel();
   const todayISO = toDateStr(new Date());
   const [applied, setApplied] = useState({
     startDate: getMonthStart(todayISO), endDate: todayISO,
@@ -17,7 +19,7 @@ const ProcessDefects = () => {
   });
   const [queried, setQueried] = useState(false);
 
-  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters);
+  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters, selectedModel.id);
 
   const handleQuery = useCallback((params: QueryParams) => {
     setApplied(params);

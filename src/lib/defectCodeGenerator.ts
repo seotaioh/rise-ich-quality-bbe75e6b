@@ -24,8 +24,8 @@ export interface DefectCodeResult {
   description: string;
 }
 
-// Product Classification - ICH-3000 is always C03
-const PRODUCT_CODE = "C03";
+// Product Classification - default C03 for ICH-3000
+const DEFAULT_PRODUCT_CODE = "C03";
 
 // Process Classification
 export const PROCESS_CODES: Record<string, string> = {
@@ -200,9 +200,7 @@ function extractProcessFromCause(cause: string): string {
   return "B"; // Default to process inspection
 }
 
-export function generateDefectCode(input: DefectCodeInput): DefectCodeResult {
-  // 1. Product Code (always C03)
-  const productCode = PRODUCT_CODE;
+export function generateDefectCode(input: DefectCodeInput, productCode: string = DEFAULT_PRODUCT_CODE): DefectCodeResult {
   
   // 2. Process Code - 사용자가 선택한 공정을 우선 사용
   const processCode = PROCESS_CODES[input.processType] || "B";
@@ -233,8 +231,8 @@ export function generateDefectCodeDynamic(
   partCode: string,
   defectType: string,
   partName: string,
+  productCode: string = DEFAULT_PRODUCT_CODE,
 ): DefectCodeResult {
-  const productCode = PRODUCT_CODE;
   const defectCode = findDefectCode(partCode, defectType);
   const fullCode = `${productCode}${processCode}${partCode}${defectCode}`;
 
@@ -251,6 +249,6 @@ export function generateDefectCodeDynamic(
 }
 
 // Batch processing for multiple defects
-export function generateDefectCodes(inputs: DefectCodeInput[]): DefectCodeResult[] {
-  return inputs.map(input => generateDefectCode(input));
+export function generateDefectCodes(inputs: DefectCodeInput[], productCode: string = DEFAULT_PRODUCT_CODE): DefectCodeResult[] {
+  return inputs.map(input => generateDefectCode(input, productCode));
 }

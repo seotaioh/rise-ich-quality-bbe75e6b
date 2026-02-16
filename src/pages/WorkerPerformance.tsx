@@ -6,8 +6,10 @@ import type { StatFilters } from "@/hooks/useSubmissionStats";
 import { QueryPanel } from "@/components/quality/QueryPanel";
 import type { QueryParams } from "@/components/quality/QueryPanel";
 import { WorkerPerformanceTable } from "@/components/quality/WorkerPerformanceTable";
+import { useModel } from "@/contexts/ModelContext";
 
 const WorkerPerformance = () => {
+  const { selectedModel } = useModel();
   const todayISO = toDateStr(new Date());
 
   const [applied, setApplied] = useState({
@@ -17,7 +19,7 @@ const WorkerPerformance = () => {
   });
   const [queried, setQueried] = useState(false);
 
-  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters);
+  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters, selectedModel.id);
 
   const handleQuery = useCallback((params: QueryParams) => {
     setApplied(params);

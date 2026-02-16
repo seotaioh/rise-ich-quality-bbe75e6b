@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, ClipboardEdit, LucideIcon } from "lucide-react";
+import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, ClipboardEdit, Database, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModel } from "@/contexts/ModelContext";
 
 interface NavItemProps {
   to: string;
@@ -29,17 +30,34 @@ const NavItem = ({ to, icon: Icon, children }: NavItemProps) => {
 };
 
 export const Navigation = () => {
+  const { selectedModel, setSelectedModelId, models } = useModel();
+
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-[var(--shadow-soft)]">
       <div className="container mx-auto px-6">
         {/* Header */}
-        <div className="flex items-center gap-3 py-4 border-b border-border/50">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-accent">
-            <Activity className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-between py-4 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-accent">
+              <Activity className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">생산 모델별 품질관리 시스템</h1>
+              <p className="text-sm text-muted-foreground">Process Quality Management System</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">ICH-3000 품질관리 시스템</h1>
-            <p className="text-sm text-muted-foreground">Process Quality Management System</p>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">모델:</label>
+            <select
+              value={selectedModel.id}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              className="h-10 rounded-lg border-2 border-primary bg-primary/5 px-4 py-2 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -65,6 +83,9 @@ export const Navigation = () => {
           </NavItem>
           <NavItem to="/workers" icon={Users}>
             작업자 실적
+          </NavItem>
+          <NavItem to="/model-manage" icon={Database}>
+            모델 관리
           </NavItem>
         </div>
       </div>

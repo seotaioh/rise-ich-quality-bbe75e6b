@@ -1,8 +1,10 @@
 import { DefectCodeGenerator } from "@/components/quality/DefectCodeGenerator";
 import { Card } from "@/components/ui/card";
 import { Code2 } from "lucide-react";
+import { useModel } from "@/contexts/ModelContext";
 
 const DefectCodePage = () => {
+  const { selectedModel } = useModel();
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3 mb-6">
@@ -22,7 +24,7 @@ const DefectCodePage = () => {
             <div>
               <p className="font-medium text-foreground mb-2">코드 구조: [AAA][B][CCC][D]</p>
               <ul className="space-y-2 text-muted-foreground">
-                <li><span className="font-mono bg-muted px-2 py-1 rounded">AAA</span> = 제품 분류 (C03: ICH-3000)</li>
+                <li><span className="font-mono bg-muted px-2 py-1 rounded">AAA</span> = 제품 분류 ({selectedModel.productCode}: {selectedModel.label})</li>
                 <li><span className="font-mono bg-muted px-2 py-1 rounded">B</span> = 공정 분류 (A: 조립, B: 검사, C: 제품검사, D: 출하, E: 고객)</li>
                 <li><span className="font-mono bg-muted px-2 py-1 rounded">CCC</span> = 부품 코드 (대분류 + 소분류)</li>
                 <li><span className="font-mono bg-muted px-2 py-1 rounded">D</span> = 불량 유형</li>
@@ -45,8 +47,8 @@ const DefectCodePage = () => {
             <div className="border-t border-border pt-4">
               <p className="font-medium text-foreground mb-2">예시</p>
               <div className="bg-muted/50 p-3 rounded-lg">
-                <p className="font-mono text-lg mb-2 text-foreground">C03B5012</p>
-                <p className="text-xs text-muted-foreground">제품: C03 (ICH-3000) | 공정: B (검사) | 부품: 501 (솔밸브-온수) | 불량: 2 (누수)</p>
+                <p className="font-mono text-lg mb-2 text-foreground">{selectedModel.productCode}B5012</p>
+                <p className="text-xs text-muted-foreground">제품: {selectedModel.productCode} ({selectedModel.label}) | 공정: B (검사) | 부품: 501 (솔밸브-온수) | 불량: 2 (누수)</p>
               </div>
             </div>
           </div>

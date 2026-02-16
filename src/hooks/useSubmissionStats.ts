@@ -18,6 +18,7 @@ export interface WorkerSubmission {
   tasks: string[];
   defects: DefectEntry[];
   memo: string;
+  model?: string;
 }
 
 export interface StatFilters {
@@ -120,6 +121,7 @@ export function useSubmissionStats(
   startDate: string,
   endDate: string,
   filters?: StatFilters,
+  model?: string,
 ): SubmissionStats {
   const submissions = useRawSubmissions();
 
@@ -129,8 +131,14 @@ export function useSubmissionStats(
   const filterDefectType = filters?.defectType || "";
 
   return useMemo(() => {
+    // 0단계: 모델 필터
+    let modelFiltered = submissions;
+    if (model) {
+      modelFiltered = submissions.filter((s) => (s.model || "ICH-3000") === model);
+    }
+
     // 1단계: 날짜 필터
-    const dateFiltered = submissions.filter((s) => s.date >= startDate && s.date <= endDate);
+    const dateFiltered = modelFiltered.filter((s) => s.date >= startDate && s.date <= endDate);
 
     // 필터 옵션용 고유값 수집 (날짜 범위 내 전체 데이터 기준)
     const processSet = new Set<string>();
@@ -242,7 +250,7 @@ export function useSubmissionStats(
       }));
 
     return {
-      submissions,
+      submissions: modelFiltered,
       filtered,
       totalProduction,
       totalDefects,
@@ -258,5 +266,5 @@ export function useSubmissionStats(
       availableParts: [...partSet].sort(),
       availableDefectTypes: [...defectTypeSet].sort(),
     };
-  }, [submissions, startDate, endDate, filterProcess, filterWorker, filterPart, filterDefectType]);
+  }, [submissions, startDate, endDate, filterProcess, filterWorker, filterPart, filterDefectType, model]);
 }

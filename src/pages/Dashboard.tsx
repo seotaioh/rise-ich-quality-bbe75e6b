@@ -11,6 +11,7 @@ import type { StatFilters } from "@/hooks/useSubmissionStats";
 import { QueryPanel } from "@/components/quality/QueryPanel";
 import type { QueryParams } from "@/components/quality/QueryPanel";
 import { ProcessFlowDiagram } from "@/components/quality/ProcessFlowDiagram";
+import { useModel } from "@/contexts/ModelContext";
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
@@ -19,6 +20,7 @@ const CHART_COLORS = [
 ];
 
 const Dashboard = () => {
+  const { selectedModel } = useModel();
   const todayISO = toDateStr(new Date());
   const [applied, setApplied] = useState({
     startDate: todayISO, endDate: todayISO,
@@ -26,7 +28,7 @@ const Dashboard = () => {
   });
   const [queried, setQueried] = useState(false);
 
-  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters);
+  const stats = useSubmissionStats(applied.startDate, applied.endDate, applied.filters, selectedModel.id);
 
   const handleQuery = useCallback((params: QueryParams) => {
     setApplied(params);

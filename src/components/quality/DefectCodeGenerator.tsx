@@ -6,6 +6,7 @@ import { generateDefectCodeDynamic, DEFECT_CODES } from "@/lib/defectCodeGenerat
 import { useCustomOptions } from "@/hooks/useCustomOptions";
 import { CodedOptionManager } from "./OptionManager";
 import { Sparkles, RotateCcw, Settings, AlertTriangle } from "lucide-react";
+import { useModel } from "@/contexts/ModelContext";
 
 const selectClassName =
   "w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
@@ -27,6 +28,7 @@ const INITIAL_INPUT: FormInput = {
 };
 
 export const DefectCodeGenerator = () => {
+  const { selectedModel } = useModel();
   const [input, setInput] = useState<FormInput>(INITIAL_INPUT);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [breakdown, setBreakdown] = useState<any>(null);
@@ -69,7 +71,7 @@ export const DefectCodeGenerator = () => {
     const part = options.parts.find((p) => p.name === input.partName);
     const processCode = proc?.code || "B";
     const partCode = part?.code || "999";
-    const result = generateDefectCodeDynamic(processCode, partCode, input.defectType, input.partName);
+    const result = generateDefectCodeDynamic(processCode, partCode, input.defectType, input.partName, selectedModel.productCode);
     setGeneratedCode(result.code);
     setBreakdown(result.breakdown);
   };
