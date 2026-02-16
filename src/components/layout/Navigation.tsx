@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, LucideIcon } from "lucide-react";
+import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, ClipboardEdit, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItemProps {
@@ -59,6 +59,9 @@ export const Navigation = () => {
           </NavItem>
           <NavItem to="/worker-defects" icon={UserCheck}>
             작업자별 불량유형
+          </NavItem>
+          <NavItem to="/worker-input" icon={ClipboardEdit}>
+            생산 입력
           </NavItem>
           <NavItem to="/workers" icon={Users}>
             작업자 실적

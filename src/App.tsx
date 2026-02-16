@@ -9,6 +9,7 @@ import DefectAnalysis from "./pages/DefectAnalysis";
 import ProcessDefects from "./pages/ProcessDefects";
 import WorkerDefects from "./pages/WorkerDefects";
 import WorkerPerformance from "./pages/WorkerPerformance";
+import WorkerInputPage from "./pages/WorkerInputPage";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/layout/Layout";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/process-defects" element={<Layout><ProcessDefects /></Layout>} />
           <Route path="/worker-defects" element={<Layout><WorkerDefects /></Layout>} />
           <Route path="/workers" element={<Layout><WorkerPerformance /></Layout>} />
+          <Route path="/worker-input" element={<Layout><WorkerInputPage /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

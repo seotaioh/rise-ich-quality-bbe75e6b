@@ -204,13 +204,8 @@ export function generateDefectCode(input: DefectCodeInput): DefectCodeResult {
   // 1. Product Code (always C03)
   const productCode = PRODUCT_CODE;
   
-  // 2. Process Code
-  let processCode = PROCESS_CODES[input.processType] || "B";
-  
-  // If not explicitly set, try to extract from cause
-  if (input.defectCause) {
-    processCode = extractProcessFromCause(input.defectCause);
-  }
+  // 2. Process Code - 사용자가 선택한 공정을 우선 사용
+  const processCode = PROCESS_CODES[input.processType] || "B";
   
   // 3. Part Code
   const partCode = findPartCode(input.partName);
@@ -229,6 +224,29 @@ export function generateDefectCode(input: DefectCodeInput): DefectCodeResult {
       defect: defectCode,
     },
     description: `${input.partName} - ${input.defectType}`,
+  };
+}
+
+// 동적 옵션을 사용한 코드 생성 (코드값을 직접 전달)
+export function generateDefectCodeDynamic(
+  processCode: string,
+  partCode: string,
+  defectType: string,
+  partName: string,
+): DefectCodeResult {
+  const productCode = PRODUCT_CODE;
+  const defectCode = findDefectCode(partCode, defectType);
+  const fullCode = `${productCode}${processCode}${partCode}${defectCode}`;
+
+  return {
+    code: fullCode,
+    breakdown: {
+      product: productCode,
+      process: processCode,
+      part: partCode,
+      defect: defectCode,
+    },
+    description: `${partName} - ${defectType}`,
   };
 }
 
