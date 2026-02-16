@@ -426,8 +426,8 @@ const WorkerInputPage = () => {
                         </p>
                       )}
                     </div>
-                    );})
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
