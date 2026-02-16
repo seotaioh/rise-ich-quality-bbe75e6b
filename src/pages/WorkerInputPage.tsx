@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,28 +8,9 @@ import {
   Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useCustomOptions } from "@/hooks/useCustomOptions";
+import { useWorkerSubmissions, DefectEntry } from "@/hooks/useWorkerSubmissions";
 import { DEFECT_CODES } from "@/lib/defectCodeGenerator";
 import { toast } from "sonner";
-
-// ── 타입 ──
-interface DefectEntry {
-  part: string;
-  defectType: string;
-  count: number;
-}
-
-interface WorkerSubmission {
-  id: number;
-  workerName: string;
-  workerCode: string;
-  date: string;
-  time: string;
-  process: string;
-  productionQty: number;
-  tasks: string[];
-  defects: DefectEntry[];
-  memo: string;
-}
 
 // ── 작업유형 (실제 카톡 데이터 기반) ──
 const TASK_OPTIONS = [
@@ -39,8 +20,6 @@ const TASK_OPTIONS = [
   "바디데코작업", "사전작업", "하우징인두작업", "배선작업", "체결작업",
   "제품출하", "출하작업", "지게차작업", "불량자재출고", "공정창고입고",
 ];
-
-const STORAGE_KEY = "ich-quality-worker-submissions-v2";
 
 // ── 날짜 유틸 ──
 function toDateStr(d: Date): string {
@@ -64,38 +43,15 @@ const selectCls =
 const inputCls =
   "w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
 
-function normalizeDate(dateStr: string): string {
-  // 기존 "2026. 2. 16." 형식을 "2026-02-16" 형식으로 변환
-  const match = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
-  if (match) {
-    return `${match[1]}-${String(parseInt(match[2])).padStart(2, "0")}-${String(parseInt(match[3])).padStart(2, "0")}`;
-  }
-  return dateStr;
-}
-
-function loadSubmissions(): WorkerSubmission[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const data: WorkerSubmission[] = JSON.parse(raw);
-      // 기존 한국어 날짜 형식을 ISO 형식으로 마이그레이션
-      return data.map((s) => ({ ...s, date: normalizeDate(s.date) }));
-    }
-  } catch {}
-  return [];
-}
-function saveSubmissions(data: WorkerSubmission[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
 // ── 메인 컴포넌트 ──
 const WorkerInputPage = () => {
   const options = useCustomOptions();
+  const { submissions, loading, addSubmission, deleteSubmission } = useWorkerSubmissions();
 
   // 날짜 상태
   const todayISO = toDateStr(new Date());
-  const [workDate, setWorkDate] = useState(todayISO);   // 입력 폼 작업일
-  const [viewDate, setViewDate] = useState(todayISO);    // 통계/내역 조회 날짜
+  const [workDate, setWorkDate] = useState(todayISO);
+  const [viewDate, setViewDate] = useState(todayISO);
 
   // 폼 상태
   const [workerName, setWorkerName] = useState("");
@@ -104,9 +60,7 @@ const WorkerInputPage = () => {
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [defects, setDefects] = useState<DefectEntry[]>([]);
   const [memo, setMemo] = useState("");
-  const [submissions, setSubmissions] = useState<WorkerSubmission[]>([]);
-
-  useEffect(() => { setSubmissions(loadSubmissions()); }, []);
+  const [submitting, setSubmitting] = useState(false);
 
   // 선택된 부품에 따른 불량유형 목록
   const getDefectTypes = (partName: string) => {
@@ -150,24 +104,22 @@ const WorkerInputPage = () => {
   };
 
   // ── 제출 ──
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!workerName) { toast.error("작업자를 선택하세요."); return; }
     if (!process) { toast.error("공정을 선택하세요."); return; }
 
-    // 불완전한 불량 항목 체크 (부품 또는 불량유형 누락)
     const incompleteDefects = defects.filter((d) => (d.part || d.defectType || d.count > 1) && (!d.part || !d.defectType || d.count <= 0));
     if (incompleteDefects.length > 0) {
-      toast.error(`불량 항목 ${incompleteDefects.length}건이 불완전합니다. 부품과 불량유형을 모두 선택하세요.`);
+      toast.error(`불량 항목 ${incompleteDefects.length}건이 불완전합니다.`);
       return;
     }
 
     const validDefects = defects.filter((d) => d.part && d.defectType && d.count > 0);
-
     const worker = options.workers.find((w) => w.name === workerName);
     const now = new Date();
 
-    const submission: WorkerSubmission = {
-      id: Date.now(),
+    setSubmitting(true);
+    const result = await addSubmission({
       workerName,
       workerCode: worker?.code || "",
       date: workDate,
@@ -177,32 +129,24 @@ const WorkerInputPage = () => {
       tasks: selectedTasks,
       defects: validDefects,
       memo,
-    };
+    });
+    setSubmitting(false);
 
-    const updated = [submission, ...submissions];
-    setSubmissions(updated);
-    saveSubmissions(updated);
+    if (result) {
+      setViewDate(workDate);
+      setProductionQty(0);
+      setSelectedTasks([]);
+      setDefects([]);
+      setMemo("");
 
-    // 조회 날짜를 작업일로 맞춤
-    setViewDate(workDate);
-
-    // 작업자, 공정, 작업일은 유지, 나머지 초기화 (연속 입력 편의)
-    setProductionQty(0);
-    setSelectedTasks([]);
-    setDefects([]);
-    setMemo("");
-
-    const defectMsg = validDefects.length > 0
-      ? ` (불량 ${validDefects.length}건 포함)`
-      : "";
-    toast.success(`${workerName}님의 실적이 등록되었습니다.${defectMsg}`);
+      const defectMsg = validDefects.length > 0 ? ` (불량 ${validDefects.length}건 포함)` : "";
+      toast.success(`${workerName}님의 실적이 등록되었습니다.${defectMsg}`);
+    }
   };
 
-  const deleteSubmission = (id: number) => {
-    const updated = submissions.filter((s) => s.id !== id);
-    setSubmissions(updated);
-    saveSubmissions(updated);
-    toast.info("삭제되었습니다.");
+  const handleDelete = async (id: string) => {
+    const ok = await deleteSubmission(id);
+    if (ok) toast.info("삭제되었습니다.");
   };
 
   // ── 선택 날짜 통계 ──
@@ -296,12 +240,7 @@ const WorkerInputPage = () => {
               <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" /> 작업일
               </label>
-              <input
-                type="date"
-                className={inputCls}
-                value={workDate}
-                onChange={(e) => setWorkDate(e.target.value)}
-              />
+              <input type="date" className={inputCls} value={workDate} onChange={(e) => setWorkDate(e.target.value)} />
             </div>
 
             {/* 1. 작업자 */}
@@ -335,14 +274,8 @@ const WorkerInputPage = () => {
               <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5" /> 생산수량
               </label>
-              <input
-                type="number"
-                className={inputCls}
-                placeholder="생산 수량을 입력하세요"
-                min={0}
-                value={productionQty || ""}
-                onChange={(e) => setProductionQty(parseInt(e.target.value) || 0)}
-              />
+              <input type="number" className={inputCls} placeholder="생산 수량을 입력하세요" min={0}
+                value={productionQty || ""} onChange={(e) => setProductionQty(parseInt(e.target.value) || 0)} />
             </div>
 
             {/* 4. 작업내용 (토글 선택) */}
@@ -350,16 +283,12 @@ const WorkerInputPage = () => {
               <label className="block text-sm font-medium mb-2">작업내용 (해당 항목 선택)</label>
               <div className="flex flex-wrap gap-2">
                 {TASK_OPTIONS.map((task) => (
-                  <button
-                    key={task}
-                    type="button"
-                    onClick={() => toggleTask(task)}
+                  <button key={task} type="button" onClick={() => toggleTask(task)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                       selectedTasks.includes(task)
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                    }`}
-                  >
+                    }`}>
                     {task}
                   </button>
                 ))}
@@ -379,53 +308,39 @@ const WorkerInputPage = () => {
                   {defects.map((d, idx) => {
                     const isIncomplete = !d.part || !d.defectType || d.count <= 0;
                     return (
-                    <div key={idx} className={`p-3 rounded-lg border space-y-2 ${isIncomplete ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/20"}`}>
-                      <div className="flex gap-2 items-center">
-                        <select
-                          className={`${selectCls} ${!d.part ? "text-destructive border-destructive/30" : ""}`}
-                          value={d.part}
-                          onChange={(e) => updateDefect(idx, "part", e.target.value)}
-                          style={{ flex: 3 }}
-                        >
-                          <option value="">불량 부품을 선택하세요</option>
-                          {options.parts.map((p) => (
-                            <option key={p.name} value={p.name}>{p.name} ({p.code})</option>
-                          ))}
-                        </select>
-                        <button type="button" onClick={() => removeDefect(idx)}
-                          className="p-2 text-muted-foreground hover:text-destructive transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div key={idx} className={`p-3 rounded-lg border space-y-2 ${isIncomplete ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/20"}`}>
+                        <div className="flex gap-2 items-center">
+                          <select className={`${selectCls} ${!d.part ? "text-destructive border-destructive/30" : ""}`}
+                            value={d.part} onChange={(e) => updateDefect(idx, "part", e.target.value)} style={{ flex: 3 }}>
+                            <option value="">불량 부품을 선택하세요</option>
+                            {options.parts.map((p) => (
+                              <option key={p.name} value={p.name}>{p.name} ({p.code})</option>
+                            ))}
+                          </select>
+                          <button type="button" onClick={() => removeDefect(idx)}
+                            className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <select className={`${selectCls} ${d.part && !d.defectType ? "text-destructive border-destructive/30" : ""}`}
+                            value={d.defectType} onChange={(e) => updateDefect(idx, "defectType", e.target.value)}
+                            disabled={!d.part} style={{ flex: 2 }}>
+                            <option value="">{d.part ? "불량유형을 선택하세요" : "부품을 먼저 선택"}</option>
+                            {getDefectTypes(d.part).map((dt) => (
+                              <option key={dt} value={dt}>{dt}</option>
+                            ))}
+                          </select>
+                          <input type="number" className={inputCls} placeholder="수량" min={1}
+                            value={d.count || ""} onChange={(e) => updateDefect(idx, "count", parseInt(e.target.value) || 0)}
+                            style={{ flex: 1 }} />
+                        </div>
+                        {isIncomplete && (
+                          <p className="text-xs text-destructive">
+                            {!d.part ? "부품을 선택하세요" : !d.defectType ? "불량유형을 선택하세요" : "수량을 입력하세요"}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <select
-                          className={`${selectCls} ${d.part && !d.defectType ? "text-destructive border-destructive/30" : ""}`}
-                          value={d.defectType}
-                          onChange={(e) => updateDefect(idx, "defectType", e.target.value)}
-                          disabled={!d.part}
-                          style={{ flex: 2 }}
-                        >
-                          <option value="">{d.part ? "불량유형을 선택하세요" : "부품을 먼저 선택"}</option>
-                          {getDefectTypes(d.part).map((dt) => (
-                            <option key={dt} value={dt}>{dt}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          className={inputCls}
-                          placeholder="수량"
-                          min={1}
-                          value={d.count || ""}
-                          onChange={(e) => updateDefect(idx, "count", parseInt(e.target.value) || 0)}
-                          style={{ flex: 1 }}
-                        />
-                      </div>
-                      {isIncomplete && (
-                        <p className="text-xs text-destructive">
-                          {!d.part ? "부품을 선택하세요" : !d.defectType ? "불량유형을 선택하세요" : "수량을 입력하세요"}
-                        </p>
-                      )}
-                    </div>
                     );
                   })}
                 </div>
@@ -446,15 +361,15 @@ const WorkerInputPage = () => {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none"
                 rows={3}
                 placeholder="자유롭게 입력하세요&#10;예: 바디 432대 공정창고 입고&#10;EP7000 298대 출하작업 및 지게차작업&#10;HBS 불량자재출고"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
+                value={memo} onChange={(e) => setMemo(e.target.value)}
               />
             </div>
 
             {/* 제출 */}
-            <Button onClick={handleSubmit} className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
+            <Button onClick={handleSubmit} disabled={submitting}
+              className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
               <Send className="h-4 w-4 mr-2" />
-              실적 등록
+              {submitting ? "등록 중..." : "실적 등록"}
             </Button>
           </div>
         </Card>
@@ -469,7 +384,9 @@ const WorkerInputPage = () => {
             )}
           </h3>
 
-          {viewSubs.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-muted-foreground py-8">불러오는 중...</p>
+          ) : viewSubs.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               {isViewToday ? "오늘" : formatDateKR(viewDate)} 입력된 내역이 없습니다.
             </p>
@@ -477,7 +394,6 @@ const WorkerInputPage = () => {
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {viewSubs.map((sub) => (
                 <div key={sub.id} className="p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors group">
-                  {/* 헤더: 작업자 + 시간 */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="bg-card">{sub.workerName}</Badge>
@@ -485,14 +401,13 @@ const WorkerInputPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{sub.time}</span>
-                      <button onClick={() => deleteSubmission(sub.id)}
+                      <button onClick={() => handleDelete(sub.id)}
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 rounded p-1 transition-opacity">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  {/* 생산수량 */}
                   {sub.productionQty > 0 && (
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-muted-foreground">생산수량</span>
@@ -500,7 +415,6 @@ const WorkerInputPage = () => {
                     </div>
                   )}
 
-                  {/* 작업내용 */}
                   {sub.tasks.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {sub.tasks.map((t) => (
@@ -509,7 +423,6 @@ const WorkerInputPage = () => {
                     </div>
                   )}
 
-                  {/* 불량내용 */}
                   {(sub.defects || []).length > 0 && (
                     <div className="p-2 rounded bg-destructive/5 border border-destructive/20 space-y-1 mb-2">
                       <p className="text-xs font-medium text-destructive flex items-center gap-1">
@@ -526,7 +439,6 @@ const WorkerInputPage = () => {
                     </div>
                   )}
 
-                  {/* 메모 */}
                   {sub.memo && (
                     <p className="text-xs text-muted-foreground border-t border-border/50 pt-2 whitespace-pre-line">
                       {sub.memo}

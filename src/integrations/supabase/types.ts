@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      worker_submissions: {
+        Row: {
+          created_at: string
+          defects: Json
+          id: string
+          memo: string
+          process: string
+          production_qty: number
+          tasks: string[]
+          work_date: string
+          work_time: string
+          worker_code: string
+          worker_name: string
+        }
+        Insert: {
+          created_at?: string
+          defects?: Json
+          id?: string
+          memo?: string
+          process: string
+          production_qty?: number
+          tasks?: string[]
+          work_date?: string
+          work_time?: string
+          worker_code?: string
+          worker_name: string
+        }
+        Update: {
+          created_at?: string
+          defects?: Json
+          id?: string
+          memo?: string
+          process?: string
+          production_qty?: number
+          tasks?: string[]
+          work_date?: string
+          work_time?: string
+          worker_code?: string
+          worker_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
