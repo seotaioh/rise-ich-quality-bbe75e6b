@@ -20,6 +20,7 @@ export type Database = {
           defects: Json
           id: string
           memo: string
+          model: string
           process: string
           production_qty: number
           tasks: string[]
@@ -33,6 +34,7 @@ export type Database = {
           defects?: Json
           id?: string
           memo?: string
+          model?: string
           process: string
           production_qty?: number
           tasks?: string[]
@@ -46,6 +48,7 @@ export type Database = {
           defects?: Json
           id?: string
           memo?: string
+          model?: string
           process?: string
           production_qty?: number
           tasks?: string[]

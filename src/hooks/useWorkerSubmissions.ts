@@ -19,6 +19,7 @@ export interface WorkerSubmission {
   tasks: string[];
   defects: DefectEntry[];
   memo: string;
+  model?: string;
 }
 
 interface DbRow {
@@ -32,6 +33,7 @@ interface DbRow {
   tasks: string[];
   defects: DefectEntry[];
   memo: string;
+  model: string;
   created_at: string;
 }
 
@@ -47,7 +49,16 @@ function rowToSubmission(row: DbRow): WorkerSubmission {
     tasks: row.tasks || [],
     defects: (row.defects as unknown as DefectEntry[]) || [],
     memo: row.memo || "",
+    model: row.model || "ICH-3000",
   };
+}
+
+// localStorage 동기화 (useSubmissionStats 등 다른 훅과 호환)
+const STORAGE_KEY = "ich-quality-worker-submissions-v2";
+function syncToLocalStorage(subs: WorkerSubmission[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(subs));
+  } catch {}
 }
 
 export function useWorkerSubmissions() {
@@ -65,7 +76,9 @@ export function useWorkerSubmissions() {
       console.error("Failed to fetch submissions:", error);
       toast.error("데이터를 불러오지 못했습니다.");
     } else {
-      setSubmissions((data as unknown as DbRow[]).map(rowToSubmission));
+      const mapped = (data as unknown as DbRow[]).map(rowToSubmission);
+      setSubmissions(mapped);
+      syncToLocalStorage(mapped);
     }
     setLoading(false);
   }, []);
@@ -83,6 +96,7 @@ export function useWorkerSubmissions() {
       tasks: sub.tasks,
       defects: sub.defects as unknown as Record<string, unknown>[],
       memo: sub.memo,
+      model: sub.model || "ICH-3000",
     };
 
     const { data, error } = await supabase
@@ -98,7 +112,11 @@ export function useWorkerSubmissions() {
     }
 
     const newSub = rowToSubmission(data as unknown as DbRow);
-    setSubmissions((prev) => [newSub, ...prev]);
+    setSubmissions((prev) => {
+      const next = [newSub, ...prev];
+      syncToLocalStorage(next);
+      return next;
+    });
     return newSub;
   };
 
@@ -114,7 +132,11 @@ export function useWorkerSubmissions() {
       return false;
     }
 
-    setSubmissions((prev) => prev.filter((s) => s.id !== id));
+    setSubmissions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      syncToLocalStorage(next);
+      return next;
+    });
     return true;
   };
 
