@@ -33,7 +33,6 @@ interface DbRow {
   tasks: string[];
   defects: DefectEntry[];
   memo: string;
-  model: string;
   created_at: string;
 }
 
@@ -49,7 +48,7 @@ function rowToSubmission(row: DbRow): WorkerSubmission {
     tasks: row.tasks || [],
     defects: (row.defects as unknown as DefectEntry[]) || [],
     memo: row.memo || "",
-    model: row.model || "ICH-3000",
+    model: "ICH-3000",
   };
 }
 
@@ -96,7 +95,6 @@ export function useWorkerSubmissions() {
       tasks: sub.tasks,
       defects: sub.defects as unknown as Record<string, unknown>[],
       memo: sub.memo,
-      model: sub.model || "ICH-3000",
     };
 
     const { data, error } = await supabase

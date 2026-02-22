@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface OptionItem {
   name: string;
@@ -190,54 +189,7 @@ function saveLocal(modelId: string, data: ModelOptionsData) {
   localStorage.setItem(storageKey(modelId), JSON.stringify(data));
 }
 
-// ── Supabase 동기화 (테이블 존재 시에만 동작) ──
-type OptionType = "process" | "part" | "defect_cause" | "worker";
-
-async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | null> {
-  try {
-    const { data, error } = await supabase
-      .from("model_code_options")
-      .select("option_type, name, code, sort_order")
-      .eq("model_id", modelId)
-      .order("sort_order");
-
-    if (error || !data || data.length === 0) return null;
-
-    const result: ModelOptionsData = { processes: [], parts: [], defectCauses: [], workers: [] };
-    for (const row of data) {
-      const item: OptionItem = { name: row.name, code: row.code };
-      switch (row.option_type as OptionType) {
-        case "process": result.processes.push(item); break;
-        case "part": result.parts.push(item); break;
-        case "defect_cause": result.defectCauses.push(item); break;
-        case "worker": result.workers.push(item); break;
-      }
-    }
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-async function saveToSupabase(modelId: string, data: ModelOptionsData) {
-  try {
-    // 기존 데이터 삭제 후 새로 삽입
-    await supabase.from("model_code_options").delete().eq("model_id", modelId);
-
-    const rows: { model_id: string; option_type: string; name: string; code: string; sort_order: number }[] = [];
-    const addItems = (items: OptionItem[], type: OptionType) => {
-      items.forEach((item, i) => rows.push({ model_id: modelId, option_type: type, name: item.name, code: item.code, sort_order: i }));
-    };
-    addItems(data.processes, "process");
-    addItems(data.parts, "part");
-    addItems(data.defectCauses, "defect_cause");
-    addItems(data.workers, "worker");
-
-    if (rows.length > 0) {
-      await supabase.from("model_code_options").insert(rows);
-    }
-  } catch { /* Supabase 테이블 없으면 무시 */ }
-}
+// localStorage만 사용 (DB 테이블 없음)
 
 // ── Hook ──
 export function useModelOptions(modelId: string) {
@@ -267,23 +219,13 @@ export function useModelOptions(modelId: string) {
       setLoading(false);
     }
 
-    // Supabase에서 비동기 로드 시도
-    loadFromSupabase(modelId).then((dbData) => {
-      if (dbData) {
-        setProcesses(dbData.processes);
-        setParts(dbData.parts);
-        setDefectCauses(dbData.defectCauses);
-        setWorkers(dbData.workers);
-        saveLocal(modelId, dbData);
-      }
-    });
+    // localStorage에서만 로드
   }, [modelId]);
 
   const persist = useCallback(
     (p: OptionItem[], pa: OptionItem[], dc: OptionItem[], w: OptionItem[]) => {
       const data: ModelOptionsData = { processes: p, parts: pa, defectCauses: dc, workers: w };
       saveLocal(modelId, data);
-      saveToSupabase(modelId, data);
     },
     [modelId],
   );
@@ -364,7 +306,7 @@ export function useModelOptions(modelId: string) {
     setDefectCauses(d.defectCauses);
     setWorkers(d.workers);
     localStorage.removeItem(storageKey(modelId));
-    saveToSupabase(modelId, d);
+    // localStorage only
   }, [modelId]);
 
   return {
