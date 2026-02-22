@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 // 부품 카테고리(첫 자리) → { 불량유형이름: 코드 }
 export type DefectTypeMap = Record<string, Record<string, string>>;
@@ -54,44 +53,7 @@ function saveLocal(modelId: string, data: DefectTypeMap) {
   localStorage.setItem(storageKey(modelId), JSON.stringify(data));
 }
 
-// ── Supabase 동기화 ──
-async function loadFromSupabase(modelId: string): Promise<DefectTypeMap | null> {
-  try {
-    const { data, error } = await supabase
-      .from("model_defect_types")
-      .select("part_category, name, code, sort_order")
-      .eq("model_id", modelId)
-      .order("sort_order");
-
-    if (error || !data || data.length === 0) return null;
-
-    const result: DefectTypeMap = {};
-    for (const row of data) {
-      if (!result[row.part_category]) result[row.part_category] = {};
-      result[row.part_category][row.name] = row.code;
-    }
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-async function saveToSupabase(modelId: string, data: DefectTypeMap) {
-  try {
-    await supabase.from("model_defect_types").delete().eq("model_id", modelId);
-
-    const rows: { model_id: string; part_category: string; name: string; code: string; sort_order: number }[] = [];
-    for (const [category, defects] of Object.entries(data)) {
-      let i = 0;
-      for (const [name, code] of Object.entries(defects)) {
-        rows.push({ model_id: modelId, part_category: category, name, code, sort_order: i++ });
-      }
-    }
-    if (rows.length > 0) {
-      await supabase.from("model_defect_types").insert(rows);
-    }
-  } catch { /* Supabase 테이블 없으면 무시 */ }
-}
+// localStorage만 사용 (DB 테이블 없음)
 
 // ── Hook ──
 export function useModelDefectTypes(modelId: string) {
@@ -105,12 +67,7 @@ export function useModelDefectTypes(modelId: string) {
       setDefectTypes(getDefaultsForModel(modelId));
     }
 
-    loadFromSupabase(modelId).then((dbData) => {
-      if (dbData) {
-        setDefectTypes(dbData);
-        saveLocal(modelId, dbData);
-      }
-    });
+    // localStorage에서만 로드
   }, [modelId]);
 
   // 특정 부품 카테고리의 불량유형 목록 반환
@@ -142,7 +99,7 @@ export function useModelDefectTypes(modelId: string) {
       setDefectTypes((prev) => {
         const next = { ...prev, [partCategory]: { ...(prev[partCategory] || {}), [name]: code } };
         saveLocal(modelId, next);
-        saveToSupabase(modelId, next);
+        // localStorage only
         return next;
       });
     },
@@ -157,7 +114,7 @@ export function useModelDefectTypes(modelId: string) {
         delete catMap[name];
         const next = { ...prev, [partCategory]: catMap };
         saveLocal(modelId, next);
-        saveToSupabase(modelId, next);
+        // localStorage only
         return next;
       });
     },
@@ -169,7 +126,7 @@ export function useModelDefectTypes(modelId: string) {
     const d = getDefaultsForModel(modelId);
     setDefectTypes(d);
     localStorage.removeItem(storageKey(modelId));
-    saveToSupabase(modelId, d);
+    // localStorage only
   }, [modelId]);
 
   return { defectTypes, getDefectTypesForCategory, findDefectCode, addDefectType, removeDefectType, resetAll };
