@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      model_code_options: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          model_id: string
+          name: string
+          option_type: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          model_id: string
+          name: string
+          option_type: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          model_id?: string
+          name?: string
+          option_type?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      model_defect_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          model_id: string
+          name: string
+          part_category: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          model_id: string
+          name: string
+          part_category: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          model_id?: string
+          name?: string
+          part_category?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       worker_submissions: {
         Row: {
           created_at: string
