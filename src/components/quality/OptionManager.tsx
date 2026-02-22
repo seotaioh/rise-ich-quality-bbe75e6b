@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Plus, ChevronDown, ChevronUp } from "lucide-react";
-import type { OptionItem } from "@/hooks/useCustomOptions";
+import type { OptionItem } from "@/hooks/useModelOptions";
 
 /** 코드가 있는 항목 (공정, 부품) 관리 */
 export function CodedOptionManager({

@@ -226,14 +226,18 @@ export function generateDefectCode(input: DefectCodeInput, productCode: string =
 }
 
 // 동적 옵션을 사용한 코드 생성 (코드값을 직접 전달)
+// defectTypesMap: 외부에서 모델별 불량유형 매핑을 전달 (없으면 기본 DEFECT_CODES 사용)
 export function generateDefectCodeDynamic(
   processCode: string,
   partCode: string,
   defectType: string,
   partName: string,
   productCode: string = DEFAULT_PRODUCT_CODE,
+  defectTypesMap?: Record<string, Record<string, string>>,
 ): DefectCodeResult {
-  const defectCode = findDefectCode(partCode, defectType);
+  const defectCode = defectTypesMap
+    ? findDefectCodeFromMap(partCode, defectType, defectTypesMap)
+    : findDefectCode(partCode, defectType);
   const fullCode = `${productCode}${processCode}${partCode}${defectCode}`;
 
   return {
@@ -246,6 +250,21 @@ export function generateDefectCodeDynamic(
     },
     description: `${partName} - ${defectType}`,
   };
+}
+
+// 외부 매핑을 사용한 불량코드 조회
+function findDefectCodeFromMap(
+  partCode: string,
+  defectDescription: string,
+  defectTypesMap: Record<string, Record<string, string>>,
+): string {
+  const majorCategory = partCode.charAt(0);
+  const defectMap = defectTypesMap[majorCategory];
+  if (!defectMap) return "9";
+  for (const [key, value] of Object.entries(defectMap)) {
+    if (defectDescription.includes(key)) return value;
+  }
+  return "9";
 }
 
 // Batch processing for multiple defects

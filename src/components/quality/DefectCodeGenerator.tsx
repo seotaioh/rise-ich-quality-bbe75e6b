@@ -2,8 +2,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { generateDefectCodeDynamic, DEFECT_CODES } from "@/lib/defectCodeGenerator";
-import { useCustomOptions } from "@/hooks/useCustomOptions";
+import { generateDefectCodeDynamic } from "@/lib/defectCodeGenerator";
+import { useModelOptions } from "@/hooks/useModelOptions";
+import { useModelDefectTypes } from "@/hooks/useModelDefectTypes";
 import { CodedOptionManager } from "./OptionManager";
 import { Sparkles, RotateCcw, Settings, AlertTriangle } from "lucide-react";
 import { useModel } from "@/contexts/ModelContext";
@@ -38,7 +39,16 @@ export const DefectCodeGenerator = () => {
   const resetTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const options = useCustomOptions();
+  // 모델별 옵션 및 불량유형 사용
+  const options = useModelOptions(selectedModel.id);
+  const { defectTypes, getDefectTypesForCategory } = useModelDefectTypes(selectedModel.id);
+
+  // 모델 변경 시 폼 초기화
+  useEffect(() => {
+    setInput(INITIAL_INPUT);
+    setGeneratedCode(null);
+    setBreakdown(null);
+  }, [selectedModel.id]);
 
   // 확인 상태 자동 해제 (5초 후)
   useEffect(() => {
@@ -55,15 +65,14 @@ export const DefectCodeGenerator = () => {
     }
   }, [confirmRestoreDefaults]);
 
-  // 선택된 부품의 코드로부터 사용 가능한 불량 유형 필터링
+  // 선택된 부품의 코드로부터 사용 가능한 불량 유형 필터링 (모델별)
   const availableDefectTypes = useMemo(() => {
     if (!input.partName) return [];
     const part = options.parts.find((p) => p.name === input.partName);
     if (!part) return [];
     const majorCategory = part.code.charAt(0);
-    const defectMap = DEFECT_CODES[majorCategory];
-    return defectMap ? Object.keys(defectMap) : [];
-  }, [input.partName, options.parts]);
+    return getDefectTypesForCategory(majorCategory);
+  }, [input.partName, options.parts, getDefectTypesForCategory]);
 
   const handleGenerate = () => {
     if (!input.processType || !input.partName || !input.defectType) return;
@@ -71,7 +80,10 @@ export const DefectCodeGenerator = () => {
     const part = options.parts.find((p) => p.name === input.partName);
     const processCode = proc?.code || "B";
     const partCode = part?.code || "999";
-    const result = generateDefectCodeDynamic(processCode, partCode, input.defectType, input.partName, selectedModel.productCode);
+    const result = generateDefectCodeDynamic(
+      processCode, partCode, input.defectType, input.partName,
+      selectedModel.productCode, defectTypes,
+    );
     setGeneratedCode(result.code);
     setBreakdown(result.breakdown);
   };
@@ -105,6 +117,7 @@ export const DefectCodeGenerator = () => {
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-semibold text-foreground">불량코드 자동 생성기</h3>
+            <Badge variant="secondary" className="text-xs">{selectedModel.label}</Badge>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -303,7 +316,9 @@ export const DefectCodeGenerator = () => {
       {showSettings && (
         <Card className="p-4 shadow-[var(--shadow-soft)] border-border/50 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-foreground">항목 관리</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              항목 관리 <span className="text-primary">({selectedModel.label})</span>
+            </h4>
             <button
               type="button"
               onClick={handleRestoreDefaultsClick}
@@ -326,7 +341,7 @@ export const DefectCodeGenerator = () => {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            각 항목을 펼쳐서 추가/삭제할 수 있습니다. 변경사항은 자동 저장됩니다.
+            각 항목을 펼쳐서 추가/삭제할 수 있습니다. 변경사항은 <strong>{selectedModel.label}</strong> 모델에만 적용됩니다.
           </p>
           <CodedOptionManager
             label="공정"

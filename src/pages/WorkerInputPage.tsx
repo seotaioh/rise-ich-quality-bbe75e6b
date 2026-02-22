@@ -7,9 +7,9 @@ import {
   AlertTriangle, MessageSquare, Send, RotateCcw, Package,
   Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
-import { useCustomOptions } from "@/hooks/useCustomOptions";
+import { useModelOptions } from "@/hooks/useModelOptions";
+import { useModelDefectTypes } from "@/hooks/useModelDefectTypes";
 import { useWorkerSubmissions, DefectEntry } from "@/hooks/useWorkerSubmissions";
-import { DEFECT_CODES } from "@/lib/defectCodeGenerator";
 import { toast } from "sonner";
 import { useModel } from "@/contexts/ModelContext";
 
@@ -47,7 +47,8 @@ const inputCls =
 // ── 메인 컴포넌트 ──
 const WorkerInputPage = () => {
   const { selectedModel } = useModel();
-  const options = useCustomOptions();
+  const options = useModelOptions(selectedModel.id);
+  const { getDefectTypesForCategory } = useModelDefectTypes(selectedModel.id);
   const { submissions, loading, addSubmission, deleteSubmission } = useWorkerSubmissions();
 
   // 날짜 상태
@@ -64,13 +65,12 @@ const WorkerInputPage = () => {
   const [memo, setMemo] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // 선택된 부품에 따른 불량유형 목록
+  // 선택된 부품에 따른 불량유형 목록 (모델별)
   const getDefectTypes = (partName: string) => {
     const part = options.parts.find((p) => p.name === partName);
     if (!part) return [];
     const major = part.code.charAt(0);
-    const map = DEFECT_CODES[major];
-    return map ? Object.keys(map) : [];
+    return getDefectTypesForCategory(major);
   };
 
   // ── 불량 항목 CRUD ──
