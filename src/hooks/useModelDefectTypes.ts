@@ -6,6 +6,7 @@ export type DefectTypeMap = Record<string, Record<string, string>>;
 
 // ── ICH-3000 기본 불량유형 매핑 ──
 const ICH3000_DEFECT_TYPES: DefectTypeMap = {
+  "0": { "기타": "9" },
   "1": { "변형": "1", "크랙": "2", "누수": "3", "체결불량": "4" },
   "2": { "단락": "1", "단선": "2", "접촉불량": "3", "전류0값": "4", "전류 0값": "4", "미전원": "5", "코팅불량": "6", "코팅묻음": "6", "점멸": "7", "램프점멸": "7", "미작동": "8" },
   "3": { "누수": "1", "전류0값": "2", "전류 0값": "2", "체결불량": "3" },
@@ -57,8 +58,8 @@ function saveLocal(modelId: string, data: DefectTypeMap) {
 // ── Supabase 동기화 ──
 async function loadFromSupabase(modelId: string): Promise<DefectTypeMap | null> {
   try {
-    const { data, error } = await supabase
-      .from("model_defect_types")
+    const { data, error } = await (supabase
+      .from("model_defect_types") as any)
       .select("part_category, name, code, sort_order")
       .eq("model_id", modelId)
       .order("sort_order");
@@ -66,7 +67,7 @@ async function loadFromSupabase(modelId: string): Promise<DefectTypeMap | null> 
     if (error || !data || data.length === 0) return null;
 
     const result: DefectTypeMap = {};
-    for (const row of data) {
+    for (const row of data as any[]) {
       if (!result[row.part_category]) result[row.part_category] = {};
       result[row.part_category][row.name] = row.code;
     }
@@ -78,7 +79,7 @@ async function loadFromSupabase(modelId: string): Promise<DefectTypeMap | null> 
 
 async function saveToSupabase(modelId: string, data: DefectTypeMap) {
   try {
-    await supabase.from("model_defect_types").delete().eq("model_id", modelId);
+    await (supabase.from("model_defect_types") as any).delete().eq("model_id", modelId);
 
     const rows: { model_id: string; part_category: string; name: string; code: string; sort_order: number }[] = [];
     for (const [category, defects] of Object.entries(data)) {
@@ -88,9 +89,9 @@ async function saveToSupabase(modelId: string, data: DefectTypeMap) {
       }
     }
     if (rows.length > 0) {
-      await supabase.from("model_defect_types").insert(rows);
+      await (supabase.from("model_defect_types") as any).insert(rows);
     }
-  } catch { /* Supabase 테이블 없으면 무시 */ }
+  } catch { /* ignore */ }
 }
 
 // ── Hook ──
@@ -113,7 +114,6 @@ export function useModelDefectTypes(modelId: string) {
     });
   }, [modelId]);
 
-  // 특정 부품 카테고리의 불량유형 목록 반환
   const getDefectTypesForCategory = useCallback(
     (partCategory: string): string[] => {
       const map = defectTypes[partCategory];
@@ -122,7 +122,6 @@ export function useModelDefectTypes(modelId: string) {
     [defectTypes],
   );
 
-  // 불량 코드 조회
   const findDefectCode = useCallback(
     (partCode: string, defectName: string): string => {
       const majorCategory = partCode.charAt(0);
@@ -136,7 +135,6 @@ export function useModelDefectTypes(modelId: string) {
     [defectTypes],
   );
 
-  // 불량유형 추가
   const addDefectType = useCallback(
     (partCategory: string, name: string, code: string) => {
       setDefectTypes((prev) => {
@@ -149,7 +147,6 @@ export function useModelDefectTypes(modelId: string) {
     [modelId],
   );
 
-  // 불량유형 삭제
   const removeDefectType = useCallback(
     (partCategory: string, name: string) => {
       setDefectTypes((prev) => {
@@ -164,7 +161,6 @@ export function useModelDefectTypes(modelId: string) {
     [modelId],
   );
 
-  // 기본값 복원
   const resetAll = useCallback(() => {
     const d = getDefaultsForModel(modelId);
     setDefectTypes(d);

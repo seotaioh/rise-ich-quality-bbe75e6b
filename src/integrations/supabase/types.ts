@@ -16,61 +16,61 @@ export type Database = {
     Tables: {
       model_code_options: {
         Row: {
+          code: string
+          created_at: string
           id: string
           model_id: string
-          option_type: string
           name: string
-          code: string
+          option_type: string
           sort_order: number
-          created_at: string
         }
         Insert: {
+          code: string
+          created_at?: string
           id?: string
           model_id: string
-          option_type: string
           name: string
-          code: string
+          option_type: string
           sort_order?: number
-          created_at?: string
         }
         Update: {
+          code?: string
+          created_at?: string
           id?: string
           model_id?: string
-          option_type?: string
           name?: string
-          code?: string
+          option_type?: string
           sort_order?: number
-          created_at?: string
         }
         Relationships: []
       }
       model_defect_types: {
         Row: {
+          code: string
+          created_at: string
           id: string
           model_id: string
-          part_category: string
           name: string
-          code: string
+          part_category: string
           sort_order: number
-          created_at: string
         }
         Insert: {
+          code: string
+          created_at?: string
           id?: string
           model_id: string
-          part_category: string
           name: string
-          code: string
+          part_category: string
           sort_order?: number
-          created_at?: string
         }
         Update: {
+          code?: string
+          created_at?: string
           id?: string
           model_id?: string
-          part_category?: string
           name?: string
-          code?: string
+          part_category?: string
           sort_order?: number
-          created_at?: string
         }
         Relationships: []
       }
@@ -80,7 +80,6 @@ export type Database = {
           defects: Json
           id: string
           memo: string
-          model: string
           process: string
           production_qty: number
           tasks: string[]
@@ -94,7 +93,6 @@ export type Database = {
           defects?: Json
           id?: string
           memo?: string
-          model?: string
           process: string
           production_qty?: number
           tasks?: string[]
@@ -108,7 +106,6 @@ export type Database = {
           defects?: Json
           id?: string
           memo?: string
-          model?: string
           process?: string
           production_qty?: number
           tasks?: string[]

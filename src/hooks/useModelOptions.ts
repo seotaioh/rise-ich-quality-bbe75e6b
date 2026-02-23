@@ -190,13 +190,13 @@ function saveLocal(modelId: string, data: ModelOptionsData) {
   localStorage.setItem(storageKey(modelId), JSON.stringify(data));
 }
 
-// ── Supabase 동기화 (테이블 존재 시에만 동작) ──
+// ── Supabase 동기화 ──
 type OptionType = "process" | "part" | "defect_cause" | "worker";
 
 async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | null> {
   try {
-    const { data, error } = await supabase
-      .from("model_code_options")
+    const { data, error } = await (supabase
+      .from("model_code_options") as any)
       .select("option_type, name, code, sort_order")
       .eq("model_id", modelId)
       .order("sort_order");
@@ -204,7 +204,7 @@ async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | nul
     if (error || !data || data.length === 0) return null;
 
     const result: ModelOptionsData = { processes: [], parts: [], defectCauses: [], workers: [] };
-    for (const row of data) {
+    for (const row of data as any[]) {
       const item: OptionItem = { name: row.name, code: row.code };
       switch (row.option_type as OptionType) {
         case "process": result.processes.push(item); break;
@@ -221,8 +221,7 @@ async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | nul
 
 async function saveToSupabase(modelId: string, data: ModelOptionsData) {
   try {
-    // 기존 데이터 삭제 후 새로 삽입
-    await supabase.from("model_code_options").delete().eq("model_id", modelId);
+    await (supabase.from("model_code_options") as any).delete().eq("model_id", modelId);
 
     const rows: { model_id: string; option_type: string; name: string; code: string; sort_order: number }[] = [];
     const addItems = (items: OptionItem[], type: OptionType) => {
@@ -234,9 +233,9 @@ async function saveToSupabase(modelId: string, data: ModelOptionsData) {
     addItems(data.workers, "worker");
 
     if (rows.length > 0) {
-      await supabase.from("model_code_options").insert(rows);
+      await (supabase.from("model_code_options") as any).insert(rows);
     }
-  } catch { /* Supabase 테이블 없으면 무시 */ }
+  } catch { /* ignore */ }
 }
 
 // ── Hook ──
@@ -248,7 +247,6 @@ export function useModelOptions(modelId: string) {
   const [workers, setWorkers] = useState<OptionItem[]>(defaults.workers);
   const [loading, setLoading] = useState(true);
 
-  // 모델 변경 시 데이터 로드
   useEffect(() => {
     setLoading(true);
     const localData = loadLocal(modelId);
@@ -267,7 +265,6 @@ export function useModelOptions(modelId: string) {
       setLoading(false);
     }
 
-    // Supabase에서 비동기 로드 시도
     loadFromSupabase(modelId).then((dbData) => {
       if (dbData) {
         setProcesses(dbData.processes);
@@ -288,7 +285,6 @@ export function useModelOptions(modelId: string) {
     [modelId],
   );
 
-  // 공정
   const addProcess = useCallback((item: OptionItem) => {
     setProcesses((prev) => {
       const next = [...prev, item];
@@ -305,7 +301,6 @@ export function useModelOptions(modelId: string) {
     });
   }, [parts, defectCauses, workers, persist]);
 
-  // 부품
   const addPart = useCallback((item: OptionItem) => {
     setParts((prev) => {
       const next = [...prev, item];
@@ -322,7 +317,6 @@ export function useModelOptions(modelId: string) {
     });
   }, [processes, defectCauses, workers, persist]);
 
-  // 불량원인
   const addDefectCause = useCallback((item: OptionItem) => {
     setDefectCauses((prev) => {
       const next = [...prev, item];
@@ -339,7 +333,6 @@ export function useModelOptions(modelId: string) {
     });
   }, [processes, parts, workers, persist]);
 
-  // 작업자
   const addWorker = useCallback((item: OptionItem) => {
     setWorkers((prev) => {
       const next = [...prev, item];
@@ -356,7 +349,6 @@ export function useModelOptions(modelId: string) {
     });
   }, [processes, parts, defectCauses, persist]);
 
-  // 기본값 복원
   const resetAll = useCallback(() => {
     const d = getDefaultsForModel(modelId);
     setProcesses(d.processes);
