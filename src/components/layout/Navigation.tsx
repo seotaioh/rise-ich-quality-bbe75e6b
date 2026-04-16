@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, ClipboardEdit, Database, LucideIcon } from "lucide-react";
+import { Activity, Home, Code2, BarChart3, Users, Settings, UserCheck, ClipboardEdit, Database, GitBranch, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useModel } from "@/contexts/ModelContext";
 
@@ -80,6 +80,9 @@ export const Navigation = () => {
           </NavItem>
           <NavItem to="/worker-input" icon={ClipboardEdit}>
             생산 입력
+          </NavItem>
+          <NavItem to="/lot-trace" icon={GitBranch}>
+            LOT 추적
           </NavItem>
           <NavItem to="/workers" icon={Users}>
             작업자 실적

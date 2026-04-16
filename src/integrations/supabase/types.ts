@@ -21,7 +21,7 @@ export type Database = {
           id: string
           model_id: string
           name: string
-          option_type: string
+          option_type: "process" | "part" | "defect_cause" | "worker" | "supplier" | "location"
           sort_order: number
         }
         Insert: {
@@ -30,7 +30,7 @@ export type Database = {
           id?: string
           model_id: string
           name: string
-          option_type: string
+          option_type: "process" | "part" | "defect_cause" | "worker" | "supplier" | "location"
           sort_order?: number
         }
         Update: {
@@ -39,7 +39,7 @@ export type Database = {
           id?: string
           model_id?: string
           name?: string
-          option_type?: string
+          option_type?: "process" | "part" | "defect_cause" | "worker" | "supplier" | "location"
           sort_order?: number
         }
         Relationships: []
@@ -79,9 +79,15 @@ export type Database = {
           created_at: string
           defects: Json
           id: string
+          lot_no: string
           memo: string
+          model: string
           process: string
           production_qty: number
+          registration_place: string
+          registration_place_code: string
+          supplier_code: string
+          supplier_name: string
           tasks: string[]
           work_date: string
           work_time: string
@@ -92,9 +98,15 @@ export type Database = {
           created_at?: string
           defects?: Json
           id?: string
+          lot_no?: string
           memo?: string
+          model?: string
           process: string
           production_qty?: number
+          registration_place?: string
+          registration_place_code?: string
+          supplier_code?: string
+          supplier_name?: string
           tasks?: string[]
           work_date?: string
           work_time?: string
@@ -105,9 +117,15 @@ export type Database = {
           created_at?: string
           defects?: Json
           id?: string
+          lot_no?: string
           memo?: string
+          model?: string
           process?: string
           production_qty?: number
+          registration_place?: string
+          registration_place_code?: string
+          supplier_code?: string
+          supplier_name?: string
           tasks?: string[]
           work_date?: string
           work_time?: string

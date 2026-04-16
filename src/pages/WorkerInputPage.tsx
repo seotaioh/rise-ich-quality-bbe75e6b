@@ -10,8 +10,10 @@ import {
 import { useModelOptions } from "@/hooks/useModelOptions";
 import { useModelDefectTypes } from "@/hooks/useModelDefectTypes";
 import { useWorkerSubmissions, DefectEntry } from "@/hooks/useWorkerSubmissions";
+import { parseTraceTags, stripTraceTags } from "@/lib/traceability";
 import { toast } from "sonner";
 import { useModel } from "@/contexts/ModelContext";
+import { useNavigate } from "react-router-dom";
 
 // ── 작업유형 (실제 카톡 데이터 기반) ──
 const TASK_OPTIONS = [
@@ -46,6 +48,7 @@ const inputCls =
 
 // ── 메인 컴포넌트 ──
 const WorkerInputPage = () => {
+  const navigate = useNavigate();
   const { selectedModel } = useModel();
   const options = useModelOptions(selectedModel.id);
   const { getDefectTypesForCategory } = useModelDefectTypes(selectedModel.id);
@@ -62,6 +65,12 @@ const WorkerInputPage = () => {
   const [productionQty, setProductionQty] = useState<number>(0);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [defects, setDefects] = useState<DefectEntry[]>([]);
+  const [lotNo, setLotNo] = useState("");
+  const [lotSeq, setLotSeq] = useState("001");
+  const [supplierName, setSupplierName] = useState("");
+  const [supplierCode, setSupplierCode] = useState("");
+  const [registrationPlace, setRegistrationPlace] = useState("");
+  const [registrationPlaceCode, setRegistrationPlaceCode] = useState("");
   const [memo, setMemo] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,14 +110,42 @@ const WorkerInputPage = () => {
     setProductionQty(0);
     setSelectedTasks([]);
     setDefects([]);
+    setLotNo("");
+    setLotSeq("001");
+    setSupplierName("");
+    setSupplierCode("");
+    setRegistrationPlace("");
+    setRegistrationPlaceCode("");
     setMemo("");
     toast.info("입력 내용이 초기화되었습니다.");
+  };
+
+  const handleGenerateLotCode = () => {
+    if (!supplierCode) {
+      toast.error("협력업체를 선택하세요.");
+      return;
+    }
+    if (!registrationPlaceCode) {
+      toast.error("등록 장소를 선택하세요.");
+      return;
+    }
+
+    const yymmdd = workDate.replace(/-/g, "").slice(2);
+    const seqNum = Math.max(1, parseInt(lotSeq, 10) || 1);
+    const seqCode = String(seqNum).padStart(3, "0");
+    const nextLot = `${selectedModel.productCode}-${yymmdd}-${supplierCode}-${registrationPlaceCode}-${seqCode}`;
+
+    setLotNo(nextLot);
+    toast.success("LOT 코드가 생성되었습니다.");
   };
 
   // ── 제출 ──
   const handleSubmit = async () => {
     if (!workerName) { toast.error("작업자를 선택하세요."); return; }
     if (!process) { toast.error("공정을 선택하세요."); return; }
+    if (!lotNo) { toast.error("LOT 번호를 입력하거나 자동 생성하세요."); return; }
+    if (!supplierName || !supplierCode) { toast.error("협력업체를 선택하세요."); return; }
+    if (!registrationPlace || !registrationPlaceCode) { toast.error("등록 장소를 선택하세요."); return; }
 
     const incompleteDefects = defects.filter((d) => (d.part || d.defectType || d.count > 1) && (!d.part || !d.defectType || d.count <= 0));
     if (incompleteDefects.length > 0) {
@@ -131,6 +168,11 @@ const WorkerInputPage = () => {
       tasks: selectedTasks,
       defects: validDefects,
       memo,
+      lotNo,
+      supplierName,
+      supplierCode,
+      registrationPlace,
+      registrationPlaceCode,
       model: selectedModel.id,
     });
     setSubmitting(false);
@@ -140,6 +182,12 @@ const WorkerInputPage = () => {
       setProductionQty(0);
       setSelectedTasks([]);
       setDefects([]);
+      setLotNo("");
+      setLotSeq("001");
+      setSupplierName("");
+      setSupplierCode("");
+      setRegistrationPlace("");
+      setRegistrationPlaceCode("");
       setMemo("");
 
       const defectMsg = validDefects.length > 0 ? ` (불량 ${validDefects.length}건 포함)` : "";
@@ -158,6 +206,15 @@ const WorkerInputPage = () => {
   const totalDefects = viewSubs.reduce((s, sub) => s + (sub.defects || []).reduce((ds, d) => ds + d.count, 0), 0);
   const defectRate = totalProduction > 0 ? ((totalDefects / totalProduction) * 100).toFixed(1) : "0.0";
   const isViewToday = viewDate === todayISO;
+  const requiredChecklist = [
+    { label: "작업자", ok: !!workerName },
+    { label: "공정", ok: !!process },
+    { label: "LOT 번호", ok: !!lotNo },
+    { label: "협력업체", ok: !!supplierName && !!supplierCode },
+    { label: "등록 장소", ok: !!registrationPlace && !!registrationPlaceCode },
+  ];
+  const missingChecklist = requiredChecklist.filter((item) => !item.ok);
+  const canSubmit = requiredChecklist.every((item) => item.ok) && !submitting;
 
   return (
     <div className="space-y-6">
@@ -232,7 +289,7 @@ const WorkerInputPage = () => {
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
-              실적 입력
+              등록
             </h3>
             <button type="button" onClick={handleReset}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -286,7 +343,7 @@ const WorkerInputPage = () => {
 
             {/* 4. 작업내용 (토글 선택) */}
             <div>
-              <label className="block text-sm font-medium mb-2">작업내용 (해당 항목 선택)</label>
+              <label className="block text-sm font-medium mb-2">작업내용 (선택)</label>
               <div className="flex flex-wrap gap-2">
                 {TASK_OPTIONS.map((task) => (
                   <button key={task} type="button" onClick={() => toggleTask(task)}
@@ -303,9 +360,18 @@ const WorkerInputPage = () => {
 
             {/* 5. 불량내용 */}
             <div>
-              <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> 불량내용
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> 불량내용
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate("/defect-code", { state: { openDefectTypeManager: true } })}
+                  className="text-xs text-primary hover:underline"
+                >
+                  하위유형 코드 관리
+                </button>
+              </div>
 
               {defects.length === 0 ? (
                 <p className="text-sm text-muted-foreground mb-2">불량이 없으면 비워두세요.</p>
@@ -359,6 +425,90 @@ const WorkerInputPage = () => {
             </div>
 
             {/* 6. 메모 */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">LOT 번호</label>
+                  <input
+                    className={inputCls}
+                    placeholder="예: C03-250224-S001-L01-001"
+                    value={lotNo}
+                    onChange={(e) => setLotNo(e.target.value.toUpperCase())}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">LOT 순번 (3자리)</label>
+                  <input
+                    className={inputCls}
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={lotSeq}
+                    onChange={(e) => setLotSeq(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">협력업체 코드</label>
+                  <select
+                    className={selectCls}
+                    value={supplierName}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setSupplierName(name);
+                      const supplier = options.suppliers.find((s) => s.name === name);
+                      setSupplierCode(supplier?.code || "");
+                    }}
+                  >
+                    <option value="">협력업체를 선택하세요</option>
+                    {options.suppliers.map((s) => (
+                      <option key={s.name} value={s.name}>{s.name} ({s.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">등록 장소 코드</label>
+                  <select
+                    className={selectCls}
+                    value={registrationPlace}
+                    onChange={(e) => {
+                      const place = e.target.value;
+                      setRegistrationPlace(place);
+                      const location = options.locations.find((l) => l.name === place);
+                      setRegistrationPlaceCode(location?.code || "");
+                    }}
+                  >
+                    <option value="">등록 장소를 선택하세요</option>
+                    {options.locations.map((l) => (
+                      <option key={l.name} value={l.name}>{l.name} ({l.code})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                LOT 형식: 제품코드-날짜(YYMMDD)-협력업체코드-장소코드-순번
+              </p>
+
+              <Button type="button" variant="outline" className="w-full" onClick={handleGenerateLotCode}>
+                LOT 코드 자동 생성
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">협력업체 코드(확인)</label>
+                <input className={inputCls} value={supplierCode} disabled />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">등록 장소 코드(확인)</label>
+                <input className={inputCls} value={registrationPlaceCode} disabled />
+              </div>
+            </div>
+
+            {/* 7. 메모 */}
             <div>
               <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
                 <MessageSquare className="h-3.5 w-3.5" /> 메모 (자유 입력)
@@ -372,19 +522,50 @@ const WorkerInputPage = () => {
             </div>
 
             {/* 제출 */}
-            <Button onClick={handleSubmit} disabled={submitting}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
+            {!canSubmit && (
+              <div className="rounded-lg border-2 border-destructive bg-destructive/15 p-4 shadow-[var(--shadow-soft)]">
+                <p className="text-base font-extrabold text-destructive mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  필수 항목 {missingChecklist.length}개 미완료
+                </p>
+                <p className="text-sm font-semibold text-destructive mb-3">
+                  미완료: {missingChecklist.map((item) => item.label).join(", ")}
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {requiredChecklist.map((item) => (
+                    <span
+                      key={item.label}
+                      className={`px-2.5 py-1.5 rounded-md border font-semibold ${
+                        item.ok
+                          ? "border-success/60 bg-success/15 text-success-foreground"
+                          : "border-destructive/60 bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {item.ok ? "완료" : "필수"} · {item.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleSubmit}
+              className={`w-full ${
+                canSubmit
+                  ? "bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                  : "bg-destructive/20 text-destructive border-2 border-destructive font-bold disabled:opacity-100"
+              }`}
+              disabled={!canSubmit}>
               <Send className="h-4 w-4 mr-2" />
-              {submitting ? "등록 중..." : "실적 등록"}
+              {submitting ? "등록 중..." : canSubmit ? "등록" : "필수 항목 선택 후 등록 가능"}
             </Button>
           </div>
         </Card>
 
-        {/* ── 날짜별 입력 내역 ── */}
+        {/* ── 날짜별 등록 내역 ── */}
         <Card className="p-6 shadow-[var(--shadow-soft)] border-border/50">
           <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            {isViewToday ? "오늘" : formatDateKR(viewDate)} 입력 내역
+            {isViewToday ? "오늘" : formatDateKR(viewDate)} 등록 내역
             {viewSubs.length > 0 && (
               <Badge variant="outline" className="ml-auto">{viewSubs.length}건</Badge>
             )}
@@ -400,10 +581,24 @@ const WorkerInputPage = () => {
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {viewSubs.map((sub) => (
                 <div key={sub.id} className="p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors group">
+                  {(() => {
+                    const tags = parseTraceTags(sub.memo);
+                    const resolvedLot = (sub.lotNo || "").trim() || tags.lotNo;
+                    const resolvedSupplier = (sub.supplierName || "").trim() || tags.supplier;
+                    const resolvedSupplierCode = (sub.supplierCode || "").trim() || tags.supplierCode;
+                    const resolvedPlace = (sub.registrationPlace || "").trim() || tags.registrationPlace;
+                    const resolvedPlaceCode = (sub.registrationPlaceCode || "").trim() || tags.registrationPlaceCode;
+                    const cleanMemo = stripTraceTags(sub.memo);
+
+                    return (
+                      <>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="bg-card">{sub.workerName}</Badge>
                       <Badge variant="secondary" className="text-xs">{sub.process}</Badge>
+                      {resolvedLot && <Badge variant="outline" className="text-xs">LOT {resolvedLot}</Badge>}
+                      {resolvedSupplier && <Badge variant="outline" className="text-xs">협력업체 {resolvedSupplier}{resolvedSupplierCode ? ` (${resolvedSupplierCode})` : ""}</Badge>}
+                      {resolvedPlace && <Badge variant="outline" className="text-xs">등록장소 {resolvedPlace}{resolvedPlaceCode ? ` (${resolvedPlaceCode})` : ""}</Badge>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{sub.time}</span>
@@ -445,11 +640,14 @@ const WorkerInputPage = () => {
                     </div>
                   )}
 
-                  {sub.memo && (
+                  {cleanMemo && (
                     <p className="text-xs text-muted-foreground border-t border-border/50 pt-2 whitespace-pre-line">
-                      {sub.memo}
+                      {cleanMemo}
                     </p>
                   )}
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

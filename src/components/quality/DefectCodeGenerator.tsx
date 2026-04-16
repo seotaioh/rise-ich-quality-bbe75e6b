@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { generateDefectCodeDynamic } from "@/lib/defectCodeGenerator";
 import { useModelOptions } from "@/hooks/useModelOptions";
 import { useModelDefectTypes } from "@/hooks/useModelDefectTypes";
-import { CodedOptionManager } from "./OptionManager";
+import { CodedOptionManager, DefectTypeOptionManager } from "./OptionManager";
 import { Sparkles, RotateCcw, Settings, AlertTriangle } from "lucide-react";
 import { useModel } from "@/contexts/ModelContext";
+import { useLocation } from "react-router-dom";
 
 const selectClassName =
   "w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
@@ -29,6 +30,7 @@ const INITIAL_INPUT: FormInput = {
 };
 
 export const DefectCodeGenerator = () => {
+  const location = useLocation();
   const { selectedModel } = useModel();
   const [input, setInput] = useState<FormInput>(INITIAL_INPUT);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -41,7 +43,12 @@ export const DefectCodeGenerator = () => {
 
   // 모델별 옵션 및 불량유형 사용
   const options = useModelOptions(selectedModel.id);
-  const { defectTypes, getDefectTypesForCategory } = useModelDefectTypes(selectedModel.id);
+  const { defectTypes, getDefectTypesForCategory, addDefectType, removeDefectType, resetAll: resetDefectTypes } = useModelDefectTypes(selectedModel.id);
+
+  const defectCategories = useMemo(() => {
+    const keys = Array.from(new Set(options.parts.map((p) => p.code.charAt(0)).filter(Boolean))).sort();
+    return keys.map((key) => ({ key, label: `${key}xx 카테고리` }));
+  }, [options.parts]);
 
   // 모델 변경 시 폼 초기화
   useEffect(() => {
@@ -49,6 +56,12 @@ export const DefectCodeGenerator = () => {
     setGeneratedCode(null);
     setBreakdown(null);
   }, [selectedModel.id]);
+
+  useEffect(() => {
+    if ((location.state as { openDefectTypeManager?: boolean } | null)?.openDefectTypeManager) {
+      setShowSettings(true);
+    }
+  }, [location.state]);
 
   // 확인 상태 자동 해제 (5초 후)
   useEffect(() => {
@@ -105,6 +118,7 @@ export const DefectCodeGenerator = () => {
       return;
     }
     options.resetAll();
+    resetDefectTypes();
     setConfirmRestoreDefaults(false);
   };
 
@@ -366,6 +380,24 @@ export const DefectCodeGenerator = () => {
             items={options.workers}
             onAdd={options.addWorker}
             onRemove={options.removeWorker}
+          />
+          <CodedOptionManager
+            label="협력업체"
+            items={options.suppliers}
+            onAdd={options.addSupplier}
+            onRemove={options.removeSupplier}
+          />
+          <CodedOptionManager
+            label="등록 장소"
+            items={options.locations}
+            onAdd={options.addLocation}
+            onRemove={options.removeLocation}
+          />
+          <DefectTypeOptionManager
+            categories={defectCategories}
+            defectTypes={defectTypes}
+            onAdd={addDefectType}
+            onRemove={removeDefectType}
           />
         </Card>
       )}

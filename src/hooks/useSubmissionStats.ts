@@ -18,6 +18,11 @@ export interface WorkerSubmission {
   tasks: string[];
   defects: DefectEntry[];
   memo: string;
+  lotNo?: string;
+  supplierName?: string;
+  supplierCode?: string;
+  registrationPlace?: string;
+  registrationPlaceCode?: string;
   model?: string;
 }
 

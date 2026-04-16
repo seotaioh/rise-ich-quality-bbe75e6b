@@ -66,8 +66,8 @@ const WorkerDefects = () => {
       {!queried ? (
         <Card className="p-12 shadow-[var(--shadow-soft)] border-border/50 text-center">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">조회 조건을 설정한 후</p>
-          <p className="text-lg font-medium text-primary">조회 버튼을 클릭하세요.</p>
+          <p className="text-lg font-medium text-muted-foreground">조건을 선택한 뒤</p>
+          <p className="text-lg font-medium text-primary">조회해 주세요.</p>
         </Card>
       ) : (
         <>
@@ -94,7 +94,7 @@ const WorkerDefects = () => {
           {workerCards.length === 0 ? (
             <Card className="p-12 shadow-[var(--shadow-soft)] border-border/50 text-center">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium text-muted-foreground">선택한 조건에 해당하는 데이터가 없습니다.</p>
+              <p className="text-lg font-medium text-muted-foreground">조회 결과가 없습니다.</p>
             </Card>
           ) : (
             <>

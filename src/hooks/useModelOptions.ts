@@ -11,6 +11,8 @@ export interface ModelOptionsData {
   parts: OptionItem[];
   defectCauses: OptionItem[];
   workers: OptionItem[];
+  suppliers: OptionItem[];
+  locations: OptionItem[];
 }
 
 // ── ICH-3000 기본 데이터 ──
@@ -95,6 +97,18 @@ const ICH3000_WORKERS: OptionItem[] = [
   { name: "신동혁", code: "W010" },
 ];
 
+const ICH3000_SUPPLIERS: OptionItem[] = [
+  { name: "ABC정밀", code: "S001" },
+  { name: "한빛테크", code: "S002" },
+  { name: "대성부품", code: "S003" },
+];
+
+const ICH3000_LOCATIONS: OptionItem[] = [
+  { name: "입고검사장", code: "L01" },
+  { name: "공정검사장", code: "L02" },
+  { name: "출하검사장", code: "L03" },
+];
+
 // ── EP-7000 기본 데이터 (별도 코드체계) ──
 const EP7000_PROCESSES: OptionItem[] = [
   { name: "1공정", code: "A" },
@@ -148,6 +162,18 @@ const EP7000_WORKERS: OptionItem[] = [
   { name: "최동욱", code: "W005" },
 ];
 
+const EP7000_SUPPLIERS: OptionItem[] = [
+  { name: "세광산업", code: "S011" },
+  { name: "우성정밀", code: "S012" },
+  { name: "현대소재", code: "S013" },
+];
+
+const EP7000_LOCATIONS: OptionItem[] = [
+  { name: "EP 입고검사장", code: "L11" },
+  { name: "EP 공정검사장", code: "L12" },
+  { name: "EP 출하검사장", code: "L13" },
+];
+
 // ── 모델별 기본 데이터 매핑 ──
 const MODEL_DEFAULTS: Record<string, ModelOptionsData> = {
   "ICH-3000": {
@@ -155,12 +181,16 @@ const MODEL_DEFAULTS: Record<string, ModelOptionsData> = {
     parts: ICH3000_PARTS,
     defectCauses: ICH3000_DEFECT_CAUSES,
     workers: ICH3000_WORKERS,
+    suppliers: ICH3000_SUPPLIERS,
+    locations: ICH3000_LOCATIONS,
   },
   "EP-7000": {
     processes: EP7000_PROCESSES,
     parts: EP7000_PARTS,
     defectCauses: EP7000_DEFECT_CAUSES,
     workers: EP7000_WORKERS,
+    suppliers: EP7000_SUPPLIERS,
+    locations: EP7000_LOCATIONS,
   },
 };
 
@@ -170,6 +200,8 @@ function getDefaultsForModel(modelId: string): ModelOptionsData {
     parts: ICH3000_PARTS,
     defectCauses: ICH3000_DEFECT_CAUSES,
     workers: ICH3000_WORKERS,
+    suppliers: ICH3000_SUPPLIERS,
+    locations: ICH3000_LOCATIONS,
   };
 }
 
@@ -191,7 +223,7 @@ function saveLocal(modelId: string, data: ModelOptionsData) {
 }
 
 // ── Supabase 동기화 ──
-type OptionType = "process" | "part" | "defect_cause" | "worker";
+type OptionType = "process" | "part" | "defect_cause" | "worker" | "supplier" | "location";
 
 async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | null> {
   try {
@@ -203,7 +235,14 @@ async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | nul
 
     if (error || !data || data.length === 0) return null;
 
-    const result: ModelOptionsData = { processes: [], parts: [], defectCauses: [], workers: [] };
+    const result: ModelOptionsData = {
+      processes: [],
+      parts: [],
+      defectCauses: [],
+      workers: [],
+      suppliers: [],
+      locations: [],
+    };
     for (const row of data as any[]) {
       const item: OptionItem = { name: row.name, code: row.code };
       switch (row.option_type as OptionType) {
@@ -211,6 +250,8 @@ async function loadFromSupabase(modelId: string): Promise<ModelOptionsData | nul
         case "part": result.parts.push(item); break;
         case "defect_cause": result.defectCauses.push(item); break;
         case "worker": result.workers.push(item); break;
+        case "supplier": result.suppliers.push(item); break;
+        case "location": result.locations.push(item); break;
       }
     }
     return result;
@@ -231,6 +272,8 @@ async function saveToSupabase(modelId: string, data: ModelOptionsData) {
     addItems(data.parts, "part");
     addItems(data.defectCauses, "defect_cause");
     addItems(data.workers, "worker");
+    addItems(data.suppliers, "supplier");
+    addItems(data.locations, "location");
 
     if (rows.length > 0) {
       await (supabase.from("model_code_options") as any).insert(rows);
@@ -245,16 +288,21 @@ export function useModelOptions(modelId: string) {
   const [parts, setParts] = useState<OptionItem[]>(defaults.parts);
   const [defectCauses, setDefectCauses] = useState<OptionItem[]>(defaults.defectCauses);
   const [workers, setWorkers] = useState<OptionItem[]>(defaults.workers);
+  const [suppliers, setSuppliers] = useState<OptionItem[]>(defaults.suppliers);
+  const [locations, setLocations] = useState<OptionItem[]>(defaults.locations);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const localData = loadLocal(modelId);
     if (localData) {
+      const defaultsForModel = getDefaultsForModel(modelId);
       setProcesses(localData.processes);
       setParts(localData.parts);
       setDefectCauses(localData.defectCauses);
       setWorkers(localData.workers);
+      setSuppliers(localData.suppliers && localData.suppliers.length > 0 ? localData.suppliers : defaultsForModel.suppliers);
+      setLocations(localData.locations && localData.locations.length > 0 ? localData.locations : defaultsForModel.locations);
       setLoading(false);
     } else {
       const d = getDefaultsForModel(modelId);
@@ -262,6 +310,8 @@ export function useModelOptions(modelId: string) {
       setParts(d.parts);
       setDefectCauses(d.defectCauses);
       setWorkers(d.workers);
+      setSuppliers(d.suppliers);
+      setLocations(d.locations);
       setLoading(false);
     }
 
@@ -271,14 +321,23 @@ export function useModelOptions(modelId: string) {
         setParts(dbData.parts);
         setDefectCauses(dbData.defectCauses);
         setWorkers(dbData.workers);
+        setSuppliers(dbData.suppliers || []);
+        setLocations(dbData.locations || []);
         saveLocal(modelId, dbData);
       }
     });
   }, [modelId]);
 
   const persist = useCallback(
-    (p: OptionItem[], pa: OptionItem[], dc: OptionItem[], w: OptionItem[]) => {
-      const data: ModelOptionsData = { processes: p, parts: pa, defectCauses: dc, workers: w };
+    (p: OptionItem[], pa: OptionItem[], dc: OptionItem[], w: OptionItem[], s: OptionItem[], l: OptionItem[]) => {
+      const data: ModelOptionsData = {
+        processes: p,
+        parts: pa,
+        defectCauses: dc,
+        workers: w,
+        suppliers: s,
+        locations: l,
+      };
       saveLocal(modelId, data);
       saveToSupabase(modelId, data);
     },
@@ -288,66 +347,98 @@ export function useModelOptions(modelId: string) {
   const addProcess = useCallback((item: OptionItem) => {
     setProcesses((prev) => {
       const next = [...prev, item];
-      persist(next, parts, defectCauses, workers);
+      persist(next, parts, defectCauses, workers, suppliers, locations);
       return next;
     });
-  }, [parts, defectCauses, workers, persist]);
+  }, [parts, defectCauses, workers, suppliers, locations, persist]);
 
   const removeProcess = useCallback((name: string) => {
     setProcesses((prev) => {
       const next = prev.filter((p) => p.name !== name);
-      persist(next, parts, defectCauses, workers);
+      persist(next, parts, defectCauses, workers, suppliers, locations);
       return next;
     });
-  }, [parts, defectCauses, workers, persist]);
+  }, [parts, defectCauses, workers, suppliers, locations, persist]);
 
   const addPart = useCallback((item: OptionItem) => {
     setParts((prev) => {
       const next = [...prev, item];
-      persist(processes, next, defectCauses, workers);
+      persist(processes, next, defectCauses, workers, suppliers, locations);
       return next;
     });
-  }, [processes, defectCauses, workers, persist]);
+  }, [processes, defectCauses, workers, suppliers, locations, persist]);
 
   const removePart = useCallback((name: string) => {
     setParts((prev) => {
       const next = prev.filter((p) => p.name !== name);
-      persist(processes, next, defectCauses, workers);
+      persist(processes, next, defectCauses, workers, suppliers, locations);
       return next;
     });
-  }, [processes, defectCauses, workers, persist]);
+  }, [processes, defectCauses, workers, suppliers, locations, persist]);
 
   const addDefectCause = useCallback((item: OptionItem) => {
     setDefectCauses((prev) => {
       const next = [...prev, item];
-      persist(processes, parts, next, workers);
+      persist(processes, parts, next, workers, suppliers, locations);
       return next;
     });
-  }, [processes, parts, workers, persist]);
+  }, [processes, parts, workers, suppliers, locations, persist]);
 
   const removeDefectCause = useCallback((name: string) => {
     setDefectCauses((prev) => {
       const next = prev.filter((c) => c.name !== name);
-      persist(processes, parts, next, workers);
+      persist(processes, parts, next, workers, suppliers, locations);
       return next;
     });
-  }, [processes, parts, workers, persist]);
+  }, [processes, parts, workers, suppliers, locations, persist]);
 
   const addWorker = useCallback((item: OptionItem) => {
     setWorkers((prev) => {
       const next = [...prev, item];
-      persist(processes, parts, defectCauses, next);
+      persist(processes, parts, defectCauses, next, suppliers, locations);
       return next;
     });
-  }, [processes, parts, defectCauses, persist]);
+  }, [processes, parts, defectCauses, suppliers, locations, persist]);
 
   const removeWorker = useCallback((name: string) => {
     setWorkers((prev) => {
       const next = prev.filter((w) => w.name !== name);
-      persist(processes, parts, defectCauses, next);
+      persist(processes, parts, defectCauses, next, suppliers, locations);
       return next;
     });
-  }, [processes, parts, defectCauses, persist]);
+  }, [processes, parts, defectCauses, suppliers, locations, persist]);
+
+  const addSupplier = useCallback((item: OptionItem) => {
+    setSuppliers((prev) => {
+      const next = [...prev, item];
+      persist(processes, parts, defectCauses, workers, next, locations);
+      return next;
+    });
+  }, [processes, parts, defectCauses, workers, locations, persist]);
+
+  const removeSupplier = useCallback((name: string) => {
+    setSuppliers((prev) => {
+      const next = prev.filter((s) => s.name !== name);
+      persist(processes, parts, defectCauses, workers, next, locations);
+      return next;
+    });
+  }, [processes, parts, defectCauses, workers, locations, persist]);
+
+  const addLocation = useCallback((item: OptionItem) => {
+    setLocations((prev) => {
+      const next = [...prev, item];
+      persist(processes, parts, defectCauses, workers, suppliers, next);
+      return next;
+    });
+  }, [processes, parts, defectCauses, workers, suppliers, persist]);
+
+  const removeLocation = useCallback((name: string) => {
+    setLocations((prev) => {
+      const next = prev.filter((l) => l.name !== name);
+      persist(processes, parts, defectCauses, workers, suppliers, next);
+      return next;
+    });
+  }, [processes, parts, defectCauses, workers, suppliers, persist]);
 
   const resetAll = useCallback(() => {
     const d = getDefaultsForModel(modelId);
@@ -355,6 +446,8 @@ export function useModelOptions(modelId: string) {
     setParts(d.parts);
     setDefectCauses(d.defectCauses);
     setWorkers(d.workers);
+    setSuppliers(d.suppliers);
+    setLocations(d.locations);
     localStorage.removeItem(storageKey(modelId));
     saveToSupabase(modelId, d);
   }, [modelId]);
@@ -364,6 +457,8 @@ export function useModelOptions(modelId: string) {
     parts, addPart, removePart,
     defectCauses, addDefectCause, removeDefectCause,
     workers, addWorker, removeWorker,
+    suppliers, addSupplier, removeSupplier,
+    locations, addLocation, removeLocation,
     resetAll,
     loading,
   };

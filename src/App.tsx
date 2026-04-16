@@ -11,6 +11,7 @@ import WorkerDefects from "./pages/WorkerDefects";
 import WorkerPerformance from "./pages/WorkerPerformance";
 import WorkerInputPage from "./pages/WorkerInputPage";
 import ModelManagePage from "./pages/ModelManagePage";
+import LotTraceability from "./pages/LotTraceability";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/layout/Layout";
 import { ModelProvider } from "./contexts/ModelContext";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/worker-defects" element={<Layout><WorkerDefects /></Layout>} />
           <Route path="/workers" element={<Layout><WorkerPerformance /></Layout>} />
           <Route path="/worker-input" element={<Layout><WorkerInputPage /></Layout>} />
+          <Route path="/lot-trace" element={<Layout><LotTraceability /></Layout>} />
           <Route path="/model-manage" element={<Layout><ModelManagePage /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
